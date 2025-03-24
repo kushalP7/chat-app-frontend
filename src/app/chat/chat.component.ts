@@ -4,6 +4,7 @@ import { SocketService } from '../core/services/socket.service';
 import { AuthService } from '../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-chat',
@@ -26,6 +27,8 @@ export class ChatComponent implements OnInit {
   showGroupForm = false;
   selectedMembers: string[] = [];
   selectedFile: File | null = null;
+    apiUrl = environment.apiUrl + '/';
+  
 
   constructor(
     private userService: UserService,

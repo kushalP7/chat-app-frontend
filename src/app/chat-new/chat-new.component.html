@@ -64,7 +64,7 @@
                                                             <div class="user-img {{data.receiver.isOnline}} align-self-center"
                                                                 [ngClass]="{ 'online': data.receiver.isOnline === true,  'offline': data.receiver.isOnline === false }"
                                                                 *ngIf="data.receiver.avatar">
-                                                                <img [src]="'http://192.168.4.29:8080/' + data.receiver.avatar"
+                                                                <img [src]="this.apiUrl + data.receiver.avatar"
                                                                     class="rounded-circle avatar-sm" alt="">
                                                                 <span class="user-status"
                                                                     [ngClass]="{ 'online': data.receiver.isOnline === true, 'offline': data.receiver.isOnline === false }">
@@ -132,7 +132,7 @@
                                                             <div class="flex-shrink-0 user-img align-self-center me-3">
                                                                 <div class="avatar-sm align-self-center">
                                                                     <img *ngIf="group.groupAvatar"
-                                                                        [src]="'http://192.168.4.29:8080/' + group.groupAvatar"
+                                                                        [src]="this.apiUrl + group.groupAvatar"
                                                                         class="rounded-circle" alt="Group Avatar"
                                                                         width="40" height="40">
                                                                     <span *ngIf="!group.groupAvatar"
@@ -188,7 +188,7 @@
                                                                         class="flex-shrink-0 user-img align-self-center me-3">
                                                                         <div class="avatar-sm align-self-center">
                                                                             <img *ngIf="user.avatar"
-                                                                                [src]="'http://192.168.4.29:8080/' + user.avatar"
+                                                                                [src]="this.apiUrl + user.avatar"
                                                                                 class="rounded-circle avatar-sm" alt="">
 
                                                                             <span *ngIf="!user.avatar"
@@ -386,7 +386,7 @@
                                     <div class="ctext-wrap">
                                         <div *ngIf="msg.userId !== authService.getLoggedInUser()._id && msg.userId.avatar"
                                             class="chat-avatar">
-                                            <img [src]="'http://192.168.4.29:8080/' + msg.userId.avatar" alt="avatar-2">
+                                            <img [src]="this.apiUrl + msg.userId.avatar" alt="avatar-2">
                                         </div>
                                         <div *ngIf="!msg.userId.username && !userProfile" class="avatar-sm chat-avatar">
                                             <span class="avatar-title rounded-circle bg-soft-primary text-primary">
@@ -405,16 +405,18 @@
                                             <p class="mb-0" *ngIf="msg.content">{{ msg.content }}</p>
                                             <div class="message-img mt-3 mb-0" *ngIf="msg.type === 'image'">
                                                 <a class="d-inline-block">
-                                                    <img [src]="msg.fileUrl" alt="" class="rounded"
-                                                        (click)="openPreview(msg.fileUrl!, 'image')">
+                                                    <img [src]="this.apiUrl + msg.fileUrl" alt=""
+                                                        class="rounded" (click)="openPreview(msg.fileUrl!, 'image')">
                                                 </a>
                                             </div>
                                             <video *ngIf="msg.type === 'video'" controls class="chat-media chat-video"
                                                 (click)="openPreview(msg.fileUrl!, 'video')">
-                                                <source [src]="msg.fileUrl" type="video/mp4">
+                                                <source [src]="this.apiUrl+ msg.fileUrl"
+                                                    type="video/mp4">
                                             </video>
                                             <audio *ngIf="msg.type === 'audio'" controls class="chat-media chat-audio">
-                                                <source [src]="msg.fileUrl" type="audio/mp3">
+                                                <source [src]="this.apiUrl+ msg.fileUrl"
+                                                    type="audio/mp3">
                                             </audio>
                                             <div *ngIf="msg.type === 'pdf'"
                                                 class="chat-media chat-pdf d-flex align-items-center"
@@ -440,11 +442,12 @@
                                 </div>
                             </li>
                             <div class="preview-modal" *ngIf="previewUrl" (click)="closePreview()">
-                                <img *ngIf="previewType === 'image'" [src]="previewUrl">
+                                <img *ngIf="previewType === 'image'" [src]="this.apiUrl+ previewUrl">
                                 <video *ngIf="previewType === 'video'" controls autoplay>
-                                    <source [src]="previewUrl" type="video/mp4">
+                                    <source [src]="this.apiUrl+previewUrl" type="video/mp4">
                                 </video>
-                                <iframe *ngIf="previewType === 'pdf'" [src]="previewUrl" class="pdf-preview"></iframe>
+                                <iframe *ngIf="previewType === 'pdf'" [src]="this.apiUrl+previewUrl"
+                                    class="pdf-preview"></iframe>
 
                             </div>
                         </ul>

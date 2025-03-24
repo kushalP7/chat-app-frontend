@@ -5,6 +5,8 @@ import { SocketService } from '../core/services/socket.service';
 import { UserService } from '../core/services/user.service';
 import { ToastrService } from 'ngx-toastr';
 import * as mediasoupClient from 'mediasoup-client';
+import { environment } from 'src/environments/environment';
+
 
 
 
@@ -40,7 +42,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   previewType: string | null = null;
   callType: 'audio' | 'video' = 'video';
   isGroupChat: boolean = false;
-
+  apiUrl: string = environment.apiUrl + '/';
 
   @ViewChild("myVideo") myVideo!: ElementRef;
   @ViewChild("userVideo") userVideo!: ElementRef;
@@ -480,8 +482,8 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     try {
       const rtpCapabilities = await this.socketService.getRouterRtpCapabilities();
 
-    this.mediasoupDevice = new mediasoupClient.Device();
-    await this.mediasoupDevice.load({ routerRtpCapabilities: rtpCapabilities });
+      this.mediasoupDevice = new mediasoupClient.Device();
+      await this.mediasoupDevice.load({ routerRtpCapabilities: rtpCapabilities });
 
 
     } catch (error) {
@@ -499,15 +501,15 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         iceCandidates: sendTransport.iceCandidates,
         dtlsParameters: sendTransport.dtlsParameters,
       });
-  
+
       this.recvTransport = this.mediasoupDevice!.createRecvTransport({
         id: recvTransport.id,
         iceParameters: recvTransport.iceParameters,
         iceCandidates: recvTransport.iceCandidates,
         dtlsParameters: recvTransport.dtlsParameters,
       });
-  
-  
+
+
       console.log('Transports created:', { sendTransport, recvTransport });
 
     } catch (error) {
@@ -524,12 +526,12 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         track,
         encodings: [{ maxBitrate: 100000 }],
         codecOptions: {
-          videoGoogleStartBitrate: 1000, 
+          videoGoogleStartBitrate: 1000,
         },
       });
-  
+
       this.producers[kind] = producer;
-  
+
     } catch (error) {
       console.error(`Error producing ${kind} media:`, error);
     }
@@ -537,17 +539,17 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
   private async consumeMedia(producerId: string, kind: 'audio' | 'video') {
     try {
-  
+
       const consumer = await this.recvTransport!.consume({
         producerId,
         rtpCapabilities: this.mediasoupDevice!.rtpCapabilities,
       });
-  
+
       this.consumers[producerId] = consumer;
-  
+
       const stream = new MediaStream();
       stream.addTrack(consumer.track);
-  
+
       if (kind === 'video') {
         this.userVideo.nativeElement.srcObject = stream;
       } else {
@@ -555,7 +557,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         audioElement.srcObject = stream;
         audioElement.play();
       }
-  
+
       console.log(`${kind} consumer created:`, consumer);
     } catch (error) {
       console.error(`Error consuming ${kind} media:`, error);
@@ -565,25 +567,25 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   async startGroupCall(callType: 'audio' | 'video') {
     this.callInProgress = true;
     this.callType = callType;
-  
+
     try {
       this.myStream = await navigator.mediaDevices.getUserMedia(
         callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
       );
-  
+
       if (callType === 'video') {
         this.setupVideoElements();
       } else {
         this.setupAudioElements();
       }
-  
+
       await this.initializeMediasoupDevice();
       await this.createTransports();
       await this.produceMedia('audio');
       if (callType === 'video') {
         await this.produceMedia('video');
       }
-  
+
       this.socketService.onNewParticipant().subscribe(async (participant: any) => {
         if (participant.audioProducerId) {
           await this.consumeMedia(participant.audioProducerId, 'audio');
@@ -592,7 +594,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
           await this.consumeMedia(participant.videoProducerId, 'video');
         }
       });
-  
+
       this.socketService.callUser(this.groupId, null, this.authService.getLoggedInUser()._id, callType);
     } catch (error) {
       console.error('Error starting group call:', error);
@@ -602,25 +604,25 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
   async joinCall() {
     this.callInProgress = true;
-  
+
     try {
       this.myStream = await navigator.mediaDevices.getUserMedia(
         this.callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
       );
-  
+
       if (this.callType === 'video') {
         this.setupVideoElements();
       } else {
         this.setupAudioElements();
       }
-  
+
       await this.initializeMediasoupDevice();
       await this.createTransports();
       await this.produceMedia('audio');
       if (this.callType === 'video') {
         await this.produceMedia('video');
       }
-  
+
       const participants = await this.socketService.getParticipants(this.groupId);
       for (const participant of participants) {
         if (participant.audioProducerId) {
@@ -630,7 +632,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
           await this.consumeMedia(participant.videoProducerId, 'video');
         }
       }
-  
+
       this.socketService.answerCall(this.groupId, null);
     } catch (error) {
       console.error('Error joining group call:', error);

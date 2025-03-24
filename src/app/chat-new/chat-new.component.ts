@@ -4,7 +4,7 @@ import { UserService } from '../core/services/user.service';
 import { SocketService } from '../core/services/socket.service';
 import { AuthService } from '../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
-
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-chat-new',
@@ -32,6 +32,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   conversationId!: string;
   isTyping: boolean = false;
   users: any[] = [];
+  apiUrl = environment.apiUrl + '/';
 
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
   @ViewChild("myVideo") myVideo!: ElementRef;
