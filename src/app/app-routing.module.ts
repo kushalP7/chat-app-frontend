@@ -6,6 +6,11 @@ import { ChatNewComponent } from './chat-new/chat-new.component';
 
 const routes: Routes = [
   {
+    path:'',
+    redirectTo:'auth',
+    pathMatch:'full'
+  },
+  {
     path: 'auth',
     loadChildren: () => import('./authentication/authentication.module').then(m => m.AuthenticationModule),
   },

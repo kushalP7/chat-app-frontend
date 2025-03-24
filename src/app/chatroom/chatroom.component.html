@@ -3,7 +3,7 @@
         <div class="d-flex align-items-center">
 
             <div *ngIf="isGroupChat" class="d-flex align-items-center">
-                <img *ngIf="groupAvatar" [src]="'http://localhost:8080/' + groupAvatar" class="avatar me-2">
+                <img *ngIf="groupAvatar" [src]="this.apiUrl + groupAvatar" class="avatar me-2">
                 <div>
                     <h2 class="fs-6 fw-bold mb-0">{{ groupName }}</h2>
                     <div class="status small text-muted">Group chat with {{ groupMembers.length }} members</div>
@@ -11,7 +11,7 @@
             </div>
             <div *ngIf="!isGroupChat" class="d-flex align-items-center">
 
-                <img *ngIf="receiverAvatar" [src]="'http://localhost:8080/' + receiverAvatar" class="avatar me-2">
+                <img *ngIf="receiverAvatar" [src]="this.apiUrl + receiverAvatar" class="avatar me-2">
                 <div>
                     <h2 class="fs-6 fw-bold mb-0">{{ receiverName }}</h2>
                     <div class="status small">

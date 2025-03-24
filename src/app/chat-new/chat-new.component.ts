@@ -5,6 +5,7 @@ import { SocketService } from '../core/services/socket.service';
 import { AuthService } from '../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-chat-new',
@@ -62,6 +63,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     public authService: AuthService,
     private toastr: ToastrService,
     private cdr: ChangeDetectorRef,
+    private router: Router
   ) {
 
     this.socketService.newMessageReceived().subscribe(data => {
@@ -630,6 +632,10 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         }
       });
     }, 5000);
+  }
+
+  navigateToChat(){
+    this.router.navigate(['/chat']);
   }
 
 }
