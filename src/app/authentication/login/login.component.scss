@@ -1,0 +1,34 @@
+:host {
+  display: block;
+  height: 100vh;
+  background-color: #000;
+}
+
+.card {
+  border: 1px solid #333;
+  border-radius: 15px;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+}
+
+.form-control {
+  transition: all 0.3s ease;
+  padding: 12px 15px;
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    border-color: #6366f1;
+    background-color: #111;
+  }
+}
+
+.text-purple-300 {
+  color: #a78bfa;
+
+  &:hover {
+    color: #8b5cf6;
+  }
+}

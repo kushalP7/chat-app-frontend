@@ -1,0 +1,490 @@
+<div class="d-lg-flex mb-4 main chat-container">
+    <div class="chat-leftsidebar card">
+        <div class="p-4 pb-0 bg-soft-primary chat-leftsidebar-header rounded-top">
+            <div class="d-flex align-items-start">
+                <div class="flex-grow-1">
+                    <img src="assets/logo-sm.png" class="avatar-sm h-auto" alt="Logo">
+                </div>
+
+                <div class="flex-shrink-0">
+                    <div class="d-flex gap-2 align-items-start">
+                        <div class="dropdown chat-noti-dropdown" ngbDropdown placement="bottom-right">
+
+                            <button class="btn dropdown-toggle py-0 shadow-none no-arrow" type="button"
+                                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ngbDropdownToggle>
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end dropdown-menu-md p-2" ngbDropdownMenu>
+                                <form class="px-2">
+                                    <div>
+                                        <input type="text" class="form-control bg-light rounded"
+                                            placeholder="Search...">
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="dropdown chat-noti-dropdown " ngbDropdown placement="bottom-right">
+                            <button class="btn dropdown-toggle py-0 no-arrow" type="button" data-bs-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false" ngbDropdownToggle>
+                                <i class="fa-solid fa-ellipsis"></i> </button>
+                            <div class="dropdown-menu dropdown-menu-end" ngbDropdownMenu>
+                                <a class="dropdown-item" href="javascript:void(0);">Profile</a>
+                                <a class="dropdown-item" href="javascript:void(0);">Edit</a>
+                                <a class="dropdown-item" href="javascript:void(0);">Add Contact</a>
+                                <a class="dropdown-item" href="javascript:void(0);">Setting</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-leftsidebar-nav mt-4">
+                <ul ngbNav #transactions="ngbNav" [activeId]="1"
+                    class="nav nav-tabs nav-tabs-custom border-bottom-0 nav-justified">
+
+                    <li [ngbNavItem]="1" class="nav-item">
+                        <a ngbNavLink href="javascript:void(0)" data-bs-toggle="tab" aria-expanded="true"
+                            class="nav-link">
+                            <i class="bx bx-chat font-size-20 d-sm-none"></i>
+                            <span class="d-none d-sm-block" (click)="loadChatConversations()">Chat</span>
+                        </a>
+                        <ng-template ngbNavContent>
+                            <div class="px-0">
+                                <ngx-simplebar class="chat-message-list" style="position: relative;" #scrollEle>
+                                    <div class="p-4">
+                                        <h5 class="font-size-14 mb-3">Recent</h5>
+                                        <ul class="list-unstyled chat-list">
+                                            <li class="" *ngFor="let data of chatData"
+                                                [ngClass]="{'active': data.receiver?.username == username}">
+                                                <a href="javascript: void(0);" style="border: 0.5px solid #e2e5e8  ;"
+                                                    (click)="chatUsername(data.receiver?.username, data.receiver.avatar, data.receiver.isOnline, data._id, data.receiver?.username, data.receiver._id)">
+                                                    <div class="d-flex align-items-start">
+                                                        <div
+                                                            class="flex-shrink-0 user-img {{data.status}} align-self-center me-3">
+                                                            <div class="user-img {{data.receiver.isOnline}} align-self-center"
+                                                                [ngClass]="{ 'online': data.receiver.isOnline === true,  'offline': data.receiver.isOnline === false }"
+                                                                *ngIf="data.receiver.avatar">
+                                                                <img [src]="'http://192.168.4.29:8080/' + data.receiver.avatar"
+                                                                    class="rounded-circle avatar-sm" alt="">
+                                                                <span class="user-status"
+                                                                    [ngClass]="{ 'online': data.receiver.isOnline === true, 'offline': data.receiver.isOnline === false }">
+                                                                </span>
+
+                                                            </div>
+                                                            <div class="avatar-sm align-self-center"
+                                                                *ngIf="!data.receiver.avatar">
+                                                                <span
+                                                                    class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                                                    {{ data.receiver?.username.charAt(0) }}
+                                                                </span>
+                                                            </div>
+                                                            <span class="user-status"
+                                                                [ngClass]="{ 'online': data.receiver.isOnline === true, 'offline': data.receiver.isOnline === false }">
+                                                            </span>
+
+                                                        </div>
+
+                                                        <div class="flex-grow-1 overflow-hidden">
+                                                            <h5 class="text-truncate  mb-1">{{data.receiver?.username}}
+                                                            </h5>
+                                                            <p class="text-truncate mb-0">{{data.lastMessage?.content}}
+                                                            </p>
+                                                        </div>
+                                                        <div class="flex-shrink-0">
+                                                            <div class="font-size-11">{{
+                                                                formatTimestamp(data.lastMessage?.createdAt) }}
+                                                            </div>
+                                                            <span *ngIf="data.unreadCount>0"
+                                                                class="badge badge-pill bg-info">{{
+                                                                data.unreadCount}}</span>
+
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            </li>
+
+                                        </ul>
+                                    </div>
+                                </ngx-simplebar>
+                            </div>
+                        </ng-template>
+                    </li>
+                    <li [ngbNavItem]="2" class="nav-item">
+                        <a ngbNavLink>Groups</a>
+                        <ng-template ngbNavContent>
+                            <div class="px-0">
+                                <ngx-simplebar class="chat-message-list" style="position: relative;" #scrollEle>
+                                    <div class="p-4">
+                                        <div>
+                                            <div class="d-flex">
+                                                <h5 class="font-size-14">Groups</h5>
+                                                <div class="ms-auto">
+                                                    <a href="javascript:void(0);">
+                                                        <i class="fa-solid fa-plus"></i> Add New
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <ul class="list-unstyled chat-list">
+                                                <li *ngFor="let group of groupChatData">
+                                                    <a href="javascript:void(0);" (click)="openGroupChat(group)"
+                                                        style="border: 0.5px solid #e2e5e8">
+                                                        <div class="d-flex align-items-start">
+                                                            <div class="flex-shrink-0 user-img align-self-center me-3">
+                                                                <div class="avatar-sm align-self-center">
+                                                                    <img *ngIf="group.groupAvatar"
+                                                                        [src]="'http://192.168.4.29:8080/' + group.groupAvatar"
+                                                                        class="rounded-circle" alt="Group Avatar"
+                                                                        width="40" height="40">
+                                                                    <span *ngIf="!group.groupAvatar"
+                                                                        class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                                                        {{ group.groupName.charAt(0) }}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="flex-grow-1 overflow-hidden">
+                                                                <h5 class="text-truncate font-size-14 mb-1">{{
+                                                                    group.groupName }}</h5>
+
+                                                                <p class="text-truncate mb-0">
+                                                                    {{ group.members.length }} Members
+                                                                </p>
+                                                            </div>
+                                                            <div class="ms-auto">
+                                                                <span *ngIf="group.unreadCount > 0"
+                                                                    class="badge badge-pill bg-info">
+                                                                    {{ group.unreadCount }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </ngx-simplebar>
+                            </div>
+                        </ng-template>
+                    </li>
+
+                    <li [ngbNavItem]="3" class="nav-item">
+                        <a ngbNavLink>Contacts</a>
+                        <ng-template ngbNavContent>
+                            <div class="px-0">
+                                <ngx-simplebar class="chat-message-list" style="position: relative;" #scrollEle>
+                                    <div class="p-4">
+                                        <div>
+                                            <div class="d-flex">
+                                                <h5 class="font-size-14">Contacts</h5>
+                                            </div>
+
+                                            <div class="mt-2">
+                                                <div *ngFor="let user of users" class="contact-list mb-0">
+                                                    <ul class="list-unstyled chat-list">
+                                                        <li>
+                                                            <a href="javascript:void(0);"
+                                                                (click)="chatUsername(user.username, user.avatar, user.isOnline, user.conversationId, user.username, user._id)">
+                                                                <div class="d-flex align-items-start">
+                                                                    <div
+                                                                        class="flex-shrink-0 user-img align-self-center me-3">
+                                                                        <div class="avatar-sm align-self-center">
+                                                                            <img *ngIf="user.avatar"
+                                                                                [src]="'http://192.168.4.29:8080/' + user.avatar"
+                                                                                class="rounded-circle avatar-sm" alt="">
+
+                                                                            <span *ngIf="!user.avatar"
+                                                                                class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                                                                {{ user.username.charAt(0) }}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="flex-grow-1 overflow-hidden">
+                                                                        <h5 class="font-size-14 mb-0">{{ user.username
+                                                                            }}</h5>
+
+                                                                    </div>
+
+                                                                </div>
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </ngx-simplebar>
+                            </div>
+                        </ng-template>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+
+        <div>
+            <div class="tab-content">
+                <div [ngbNavOutlet]="transactions" class="mt-2 w-100"></div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="w-100 user-chat mt-4 mt-sm-0 ms-lg-1">
+        <div class="card ">
+            <div class="p-3 border-bottom">
+                <div class="row">
+                    <div class="col-xl-4 col-7">
+                        <div class="d-flex align-items-center">
+                            <div *ngIf="!isGroupChat && userProfile " class="flex-shrink-0  me-3 d-sm-block d-none">
+                                <img :src="{{userProfile}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
+                            </div>
+                            <div *ngIf="isGroupChat" class="flex-shrink-0  me-3 d-sm-block d-none">
+                                <img :src="{{groupAvatar}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
+                            </div>
+                            <div *ngIf="!userProfile && !isGroupChat" class="avatar-sm align-self-center me-3"><span
+                                    class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                    {{username}} </span></div>
+                            <div class="flex-grow-1" *ngIf="!isGroupChat">
+                                <h5 class="font-size-14 mb-1 text-truncate"><a href="javascript:void(0)"
+                                        style="text-decoration: none;" class="text-dark">{{username}}</a></h5>
+
+                                <p class="text-muted text-truncate mb-0">
+                                    <i class="fa-solid fa-circle fa-2xs "
+                                        [ngClass]="{ 'text-success': isStatus === true,  'text-muted': isStatus === false }">
+                                    </i>
+                                    {{ isStatus === true ? 'Online' : 'Offline' }}
+                                </p>
+
+                            </div>
+                            <div class="flex-grow-1" *ngIf="isGroupChat">
+                                <h5 class="font-size-14 mb-1 text-truncate"><a href="javascript:void(0)"
+                                        style="text-decoration: none;" class="text-dark">{{groupname}}</a></h5>
+
+                                <p class="text-muted text-truncate mb-0">
+                                    {{ groupMembers.length }} Members
+                                </p>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-8 col-5">
+                        <ul class="list-inline user-chat-nav text-end mb-0">
+                            <li class="list-inline-item">
+                                <div class="dropdown" ngbDropdown>
+                                    <button class="btn nav-btn dropdown-toggle no-arrow" type="button"
+                                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                        ngbDropdownToggle>
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-md p-2" ngbDropdownMenu>
+                                        <form class="px-2">
+                                            <div>
+                                                <input type="text" class="form-control border bg-soft-light"
+                                                    placeholder="Search...">
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <li class="list-inline-item">
+                                <button *ngIf="!isGroupChat && userProfile" class="btn nav-btn"
+                                    (click)="callAudioUser()">
+                                    <i class="fa-solid fa-phone"></i>
+                                </button>
+                            </li>
+
+                            <li class="list-inline-item">
+                                <button *ngIf="!isGroupChat && userProfile" class="btn nav-btn"
+                                    (click)="callVideoUser()">
+                                    <i class="fa-solid fa-video"></i>
+                                </button>
+                            </li>
+
+                            <li class="list-inline-item">
+                                <div class="dropdown" ngbDropdown>
+                                    <button class="btn nav-btn dropdown-toggle no-arrow" type="button"
+                                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                        ngbDropdownToggle>
+                                        <i class="fa-solid fa-ellipsis"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end" ngbDropdownMenu>
+                                        <a class="dropdown-item" href="javascript:void(0)">Profile</a>
+                                        <a class="dropdown-item" href="javascript:void(0)">Archive</a>
+                                        <a class="dropdown-item" href="javascript:void(0)">Muted</a>
+                                        <a class="dropdown-item" href="javascript:void(0)">Delete</a>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="chat-window">
+                <div class="call-container">
+                    <div *ngIf="callInProgress && callType==='video'"
+                        class="video-call-container position-relative text-center bg-dark p-3 rounded">
+                        <div class="d-flex justify-content-center gap-3">
+                            <div class="position-relative">
+                                <video #userVideo autoplay playsinline
+                                    class="remote-video rounded border shadow"></video>
+                            </div>
+                            <div class="position-relative">
+                                <video #myVideo autoplay playsinline class="local-video rounded border shadow"
+                                    muted></video>
+                            </div>
+                        </div>
+
+                        <div class="video-call-controls mt-3 d-flex justify-content-center gap-3">
+                            <button class="btn btn-secondary btn-sm" (click)="toggleVideo()">
+                                <i class="fa-solid"
+                                    [ngClass]="{'fa-video': isVideoEnabled, 'fa-video-slash': !isVideoEnabled}"></i>
+                            </button>
+
+                            <button class="btn btn-warning btn-sm" (click)="toggleMute()">
+                                <i class="fa-solid"
+                                    [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
+                            </button>
+
+                            <button class="btn btn-danger btn-sm" (click)="endCall()">
+                                <i class="fa-solid fa-phone-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div *ngIf="callType==='audio' && callInProgress"
+                        class="audio-call-container position-relative text-center bg-dark p-3 rounded">
+                        <div class="d-flex justify-content-center">
+                            <div class="audio-call-avatar">
+                                <i class="fa-solid fa-user-circle fa-5x text-light"></i>
+                            </div>
+                        </div>
+
+                        <div class="audio-call-controls mt-3 d-flex justify-content-center gap-3">
+                            <button class="btn btn-warning btn-sm" (click)="toggleMute()">
+                                <i class="fa-solid"
+                                    [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
+                            </button>
+
+                            <button class="btn btn-danger btn-sm" (click)="endCall()">
+                                <i class="fa-solid fa-phone-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <ngx-simplebar class="chat-conversation p-3">
+                    <div #chatWindow>
+                        <ul class="list-unstyled mb-0">
+                            <li *ngFor="let msg of messageArray"
+                                [ngClass]="{ 'right': msg.userId._id === authService.getLoggedInUser()._id }">
+                                <div class="conversation-list"
+                                    [ngClass]="{ 'order-3': msg.userId._id === authService.getLoggedInUser()._id }">
+                                    <div class="ctext-wrap">
+                                        <div *ngIf="msg.userId !== authService.getLoggedInUser()._id && msg.userId.avatar"
+                                            class="chat-avatar">
+                                            <img [src]="'http://192.168.4.29:8080/' + msg.userId.avatar" alt="avatar-2">
+                                        </div>
+                                        <div *ngIf="!msg.userId.username && !userProfile" class="avatar-sm chat-avatar">
+                                            <span class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                                {{msg.userId.username}}
+                                            </span>
+                                        </div>
+                                        <div class="ctext-wrap-content">
+                                            <h5 class="conversation-name">
+                                                <a href="javascript:void(0)" style="text-decoration: none;"
+                                                    class="user-name">
+                                                    {{ msg.userId._id === authService.getLoggedInUser()._id ? 'You' :
+                                                    msg.userId.username }}
+                                                </a>
+                                                <span class="time">{{ msg.createdAt | date: 'short' }}</span>
+                                            </h5>
+                                            <p class="mb-0" *ngIf="msg.content">{{ msg.content }}</p>
+                                            <div class="message-img mt-3 mb-0" *ngIf="msg.type === 'image'">
+                                                <a class="d-inline-block">
+                                                    <img [src]="msg.fileUrl" alt="" class="rounded"
+                                                        (click)="openPreview(msg.fileUrl!, 'image')">
+                                                </a>
+                                            </div>
+                                            <video *ngIf="msg.type === 'video'" controls class="chat-media chat-video"
+                                                (click)="openPreview(msg.fileUrl!, 'video')">
+                                                <source [src]="msg.fileUrl" type="video/mp4">
+                                            </video>
+                                            <audio *ngIf="msg.type === 'audio'" controls class="chat-media chat-audio">
+                                                <source [src]="msg.fileUrl" type="audio/mp3">
+                                            </audio>
+                                            <div *ngIf="msg.type === 'pdf'"
+                                                class="chat-media chat-pdf d-flex align-items-center"
+                                                (click)="openPreview(msg.fileUrl!, 'pdf')">
+                                                <i class="fa-solid fa-file-pdf fa-3x text-danger me-2"></i>
+                                                <span class="text-primary">{{ msg.fileUrl?.split('/')?.pop() }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="dropdown align-self-start" ngbDropdown>
+                                            <a class="dropdown-toggle no-arrow" href="javascript:void(0);" role="button"
+                                                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                                ngbDropdownToggle>
+                                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                                            </a>
+                                            <div class="dropdown-menu" ngbDropdownMenu>
+                                                <a class="dropdown-item" href="javascript:void(0);">Copy</a>
+                                                <a class="dropdown-item" href="javascript:void(0);">Save</a>
+                                                <a class="dropdown-item" href="javascript:void(0);">Forward</a>
+                                                <a class="dropdown-item" href="javascript:void(0);">Delete</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            <div class="preview-modal" *ngIf="previewUrl" (click)="closePreview()">
+                                <img *ngIf="previewType === 'image'" [src]="previewUrl">
+                                <video *ngIf="previewType === 'video'" controls autoplay>
+                                    <source [src]="previewUrl" type="video/mp4">
+                                </video>
+                                <iframe *ngIf="previewType === 'pdf'" [src]="previewUrl" class="pdf-preview"></iframe>
+
+                            </div>
+                        </ul>
+                    </div>
+                </ngx-simplebar>
+            </div>
+
+
+            <form [formGroup]="formData" (ngSubmit)="sendMessage()"
+                class="chat-input-section input-container d-flex p-3 border-top bg-white align-items-center">
+                <div *ngIf="fileName" class="selected-image-container me-2 position-relative">
+                    <img *ngIf="file?.type!.startsWith('image')" [src]="fileName" class="selected-image">
+                    <i class="fa-solid fa-file-pdf text-danger fa-2x" *ngIf="file?.type === 'application/pdf'"></i>
+                    <video *ngIf="file?.type!.startsWith('video')" class="selected-video" controls>
+                        <source [src]="fileName" type="video/mp4">
+                    </video>
+                    <audio *ngIf="file?.type!.startsWith('audio')" class="selected-audio" controls>
+                        <source [src]="fileName" type="audio/mp3">
+                    </audio>
+                    <i class="fa-solid fa-times-circle remove-image-icon" (click)="removeSelectedImage()"></i>
+                </div>
+
+
+                <input type="text" formControlName="message" class="form-control rounded-pill me-2"
+                    placeholder="Type a message...">
+
+                <input type="file" #fileInput (change)="handleFileUpload($event)" class="d-none"
+                    accept="image/*,application/pdf,video/*,audio/*">
+
+                <i class="fa-solid fa-paperclip attachment-icon me-2" (click)="fileInput.click()"></i>
+
+                <div class="col-auto">
+                    <button type="submit" class="btn chat-send w-md waves-effect waves-light">
+                        <span class="d-none d-sm-inline-block me-2">Send</span>
+                        <i class="fa-regular fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+
+
+        </div>
+    </div>
+</div>

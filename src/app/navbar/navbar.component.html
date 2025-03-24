@@ -1,0 +1,48 @@
+<nav class="navbar navbar-expand-lg bg-dark border-bottom border-body p-1">
+    <div class="container-fluid">
+        <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTogglerDemo01"
+            aria-controls="navbarTogglerDemo01" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon "></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
+            <a [routerLink]="['/chat']" class="navbar-brand site-name text-white">Chat App</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText"
+                aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarText">
+                <ul class="navbar-nav ml-auto">
+                    <ng-template #anonymous>
+                        <li class="nav-item text-white">
+                            <a class="nav-link text-white" [routerLink]="['/auth/login']">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" [routerLink]="['/auth/sign-up']">Sign Up</a>
+                        </li>
+                    </ng-template>
+                </ul>
+            </div>
+            <div>
+                <ul class="navbar-nav ml-auto">
+                    <li *ngIf="authService.loggedIn()" class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center"
+                            id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img *ngIf="authService.getLoggedInUser().avatar"
+                                [src]="'http://192.168.4.29:8080/' + authService.getLoggedInUser().avatar"
+                                alt="Profile Image" class="rounded-circle " width="30" height="30" />
+                            <span class="ml-2 ms-2">{{ authService.getLoggedInUser().username }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li>
+                                <a class="dropdown-item" [routerLink]="['/profile']">Profile</a>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" (click)="onLogoutClick()">Logout</button>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>

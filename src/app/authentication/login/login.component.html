@@ -1,0 +1,30 @@
+<div class="container-fluid vh-100 d-flex justify-content-center align-items-center bg-black">
+    <div class="card shadow-lg" style="width: 400px; background-color: #1a1a1a;">
+        <div class="card-body p-5">
+            <h2 class="text-center mb-4 text-white">Welcome Back</h2>
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <div class="mb-4">
+                    <label for="email" class="form-label text-white-50">Email address</label>
+                    <input type="text" name="email" formControlName="email"
+                        class="form-control bg-dark text-white border-dark" id="email" placeholder="name@example.com"
+                        required />
+
+                </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label text-white-50">Password</label>
+
+                    <input formControlName="password" type="password"
+                        class="form-control bg-dark text-white border-dark" id="password" placeholder="••••••••"
+                        name="password" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2 mt-3"
+                    style="background: linear-gradient(45deg, #6366f1, #8b5cf6); border: none;">
+                    Sign In
+                </button>
+            </form>
+            <div class="text-center mt-4">
+                <a routerLink="/auth/register"  class="text-decoration-none text-purple-300">Sign Up Here</a>
+            </div>
+        </div>
+    </div>
+</div>
