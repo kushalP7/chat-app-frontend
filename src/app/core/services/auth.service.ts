@@ -11,7 +11,7 @@ import { environment } from 'src/environments/environment';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = `${environment.localApiUrl}/web/user`;  
+  private apiUrl = `${environment.apiUrl}/web/user`;  
   private tokenKey = 'auth_token';
 
   constructor(private http: HttpClient, private router: Router) { }
