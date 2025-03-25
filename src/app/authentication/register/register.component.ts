@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { IUser } from 'src/app/core/interfaces/userInterface';
 import { AuthService } from 'src/app/core/services/auth.service';
 
 @Component({
@@ -12,8 +11,10 @@ import { AuthService } from 'src/app/core/services/auth.service';
 })
 export class RegisterComponent implements OnInit {
   registerForm!: FormGroup;
-  summited: boolean = false;
-  formData: any = [];
+  submitted: boolean = false;
+  avatarFile!: File | null;
+  avatarPreview: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private router: Router,
@@ -22,34 +23,48 @@ export class RegisterComponent implements OnInit {
   ) { }
   ngOnInit(): void {
     this.registerForm = this.fb.group({
-      userName: ['', [Validators.required, Validators.minLength(3)]],
+      username: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required]],
-    })
+      password: ['', [Validators.required]]
+    });
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.avatarFile = input.files[0];
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.avatarPreview = reader.result as string;
+      };
+      reader.readAsDataURL(this.avatarFile);
+    }
   }
 
   onSubmit() {
-    this.summited = true;
+    this.submitted = true;
     if (this.registerForm.invalid) {
-      return
+      return;
     }
-    this.formData.push(this.registerForm.value);
 
-    const user: IUser = {
-      username: this.registerForm.get('userName')?.value,
-      email: this.registerForm.get('email')?.value,
-      password: this.registerForm.get('password')?.value,
-      isOnline: false,
+    const formData = new FormData();
+    formData.append('username', this.registerForm.get('username')?.value);
+    formData.append('email', this.registerForm.get('email')?.value);
+    formData.append('password', this.registerForm.get('password')?.value);
+    
+    if (this.avatarFile) {
+      formData.append('image', this.avatarFile);  
     }
-    this.authService.register(user).subscribe(
+
+    this.authService.register(formData as any).subscribe(
       response => {
-        this.router.navigate(['auth/login'])
-        this.toastr.success('Register Successfully', '', { timeOut: 2000 });
-
+        this.router.navigate(['auth/login']);
+        this.toastr.success('Registered Successfully', '', { timeOut: 2000 });
       },
       error => {
         console.log(error);
-        this.toastr.error(error.message, '', {timeOut: 2000});            
+        this.toastr.error(error.error.message, '', {timeOut: 2000});            
 
         
       }

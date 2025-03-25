@@ -49,7 +49,7 @@ export class LoginComponent implements OnInit {
 
             },
             error: (error) => {
-                this.toastr.error(error.message, '', {timeOut: 2000});            
+                this.toastr.error(error.error.message, '', {timeOut: 2000});            
             }
         });
     }

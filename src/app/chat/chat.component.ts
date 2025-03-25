@@ -156,7 +156,7 @@ export class ChatComponent implements OnInit {
         this.selectedReceiverName = username;
       },
       error: error => {
-        this.toastr.error(error.message, '', { timeOut: 2000 });
+        this.toastr.error(error.error.message, '', { timeOut: 2000 });
 
       }
     });
@@ -226,7 +226,7 @@ export class ChatComponent implements OnInit {
         this.users = response.data;
       },
       error: error => {
-        this.toastr.error(error.message, '', { timeOut: 2000 });
+        this.toastr.error(error.error.message, '', { timeOut: 2000 });
 
       }
     });

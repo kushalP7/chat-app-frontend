@@ -3,14 +3,14 @@
         <h2 class="text-center mb-4 text-purple-300">Register as User</h2>
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
             <div class="form-group mt-3">
-                <label for="userName">User Name</label>
-                <input type="text" formControlName="userName" class="form-control bg-dark text-white" id="userName"
-                    placeholder="Enter UserName" />
-                <div *ngIf="hasError('userName', 'required')" class="text-danger">
-                    *UserName is required
+                <label for="username">User Name</label>
+                <input type="text" formControlName="username" class="form-control bg-dark text-white" id="username"
+                    placeholder="Enter username" />
+                <div *ngIf="hasError('username', 'required')" class="text-danger">
+                    *username is required
                 </div>
-                <div *ngIf="hasError('userName', 'minlength')" class="text-danger">
-                    *UserName must be at least 3 characters long
+                <div *ngIf="hasError('username', 'minlength')" class="text-danger">
+                    *username must be at least 3 characters long
                 </div>
             </div>
             <div class="form-group mt-3">
@@ -31,6 +31,14 @@
                     *Password is required
                 </div>
             </div>
+            <div class="form-group mt-3">
+                <label for="avatar">Profile Picture</label>
+                <input type="file" (change)="onFileSelected($event)" class="form-control bg-dark text-white" id="avatar" />
+                <div *ngIf="avatarPreview" class="mt-2">
+                    <img [src]="avatarPreview" class="rounded-circle" width="100" height="100" alt="Avatar Preview" />
+                </div>
+            </div>
+            
             <button type="submit" class="btn btn-primary mt-4 w-100">
                 Register
             </button>

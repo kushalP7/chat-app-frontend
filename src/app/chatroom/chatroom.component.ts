@@ -261,7 +261,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         this.chatWindow.nativeElement.scrollTop = this.chatWindow.nativeElement.scrollHeight;
       }, 50);
     } catch (error: any) {
-      this.toastr.error(error.message, '', { timeOut: 2000 });
+      this.toastr.error(error.error.message, '', { timeOut: 2000 });
     }
   }
 

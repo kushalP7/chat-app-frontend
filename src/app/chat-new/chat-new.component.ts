@@ -14,10 +14,11 @@ import { Router } from '@angular/router';
 export class ChatNewComponent implements OnInit, AfterViewInit {
   chatData!: any[];
   groupChatData!: any[];
-  username: string = 'KP';
+  username:string = this.authService.getLoggedInUser().username;
   groupname!: string;
   formData!: FormGroup;
   userProfile: string = '';
+  loginUserProfile: string = this.authService.getLoggedInUser().avatar;
   groupAvatar: string = '';
   isStatus: boolean = false;
   activeSection: 'chat' | 'groups' | 'contacts' = 'chat';
@@ -32,6 +33,10 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   conversationId!: string;
   isTyping: boolean = false;
   users: any[] = [];
+  groupForm!: FormGroup;
+  showGroupForm = false;
+  selectedMembers: string[] = [];
+  selectedFile: File | null = null;
 
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
   @ViewChild("myVideo") myVideo!: ElementRef;
@@ -61,9 +66,15 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     public authService: AuthService,
     private toastr: ToastrService,
     private cdr: ChangeDetectorRef,
-    private router: Router
-  ) {
+    private router: Router,
+    private fb: FormBuilder,
 
+  ) {
+    this.groupForm = this.fb.group({
+      groupName: ['', Validators.required],
+      groupDescription: [''],
+      groupAvatar: null,
+    });
     this.socketService.newMessageReceived().subscribe(data => {
       if (data.conversationId !== this.conversationId) return;
 
@@ -131,6 +142,13 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
   }
 
+  onLogoutClick() {
+    this.socketService.disconnectSocket();
+    this.authService.logout();
+    this.toastr.success('Logout Successfully', '', {timeOut: 2000});            
+
+  }
+
   ngAfterViewInit() {
     if (this.chatWindow) {
       this.scrollToBottom();
@@ -166,7 +184,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.isGroupChat = false;
     this.receiverId = receiverId;
     this.username = name;
-    this.userProfile = avatar ? avatar : 'assets/default-avatar.jpg';
+    this.userProfile = avatar;
     this.isStatus = status;
 
     if (!conversationId) {
@@ -186,7 +204,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
           this.conversationId = response.conversationId;
           this.socketService.joinConversation(response.conversationId);
           this.username = username;
-          this.userProfile = avatar ? avatar : 'assets/default-avatar.jpg';
+          this.userProfile = avatar;
 
           this.loadMessages(this.conversationId);
           this.cdr.detectChanges();
@@ -314,6 +332,78 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       });
     }
   }
+  toggleGroupForm() {
+    this.showGroupForm = !this.showGroupForm;
+    if (this.showGroupForm) {
+      this.loadAllUsers();
+    }
+  }
+  loadAllUsers() {
+    this.userService.getAllUsersExceptCurrentUser().subscribe({
+      next: response => {
+        this.users = response.data;
+      },
+      error: error => {
+        this.toastr.error(error.error.message, '', { timeOut: 2000 });
+
+      }
+    });
+  }
+
+  toggleMemberSelection(userId: string) {
+    if (this.selectedMembers.includes(userId)) {
+      this.selectedMembers = this.selectedMembers.filter(id => id !== userId);
+    } else {
+      this.selectedMembers.push(userId);
+    }
+  }
+
+  onFileSelected(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files.length) {
+      this.selectedFile = target.files[0];
+    }
+  }
+
+  createGroup() {
+    if (this.groupForm.invalid || this.selectedMembers.length < 2) {
+      alert('Please provide a valid group name, description, and select at least 2 members.');
+      return;
+    }
+
+    const groupData = {
+      groupName: this.groupForm.get('groupName')?.value,
+      groupAdmin: this.authService.getLoggedInUser()._id,
+      members: this.selectedMembers,
+      groupDescription: this.groupForm.get('groupDescription')?.value || ''
+    };
+
+    const formData = new FormData();
+
+    formData.append('groupName', groupData.groupName);
+    formData.append('groupAdmin', groupData.groupAdmin);
+    formData.append('members', JSON.stringify(groupData.members));
+    formData.append('groupDescription', groupData.groupDescription);
+
+    if (this.selectedFile) {
+      formData.append('image', this.selectedFile);
+    }
+
+    this.userService.createGroup(formData).subscribe({
+      next: (response) => {
+        this.toastr.success('Group created successfully!', '', { timeOut: 2000 });
+        this.loadGroupConversations();
+        this.showGroupForm = false;
+        this.groupForm.reset();
+        this.selectedMembers = [];
+      },
+      error: (error) => {
+        this.toastr.error('Failed to create group.', '', { timeOut: 2000 });
+        console.log(error);
+      }
+    });
+  }
+
 
   formatTimestamp(dateString: string): string {
     if (!dateString) return '';
