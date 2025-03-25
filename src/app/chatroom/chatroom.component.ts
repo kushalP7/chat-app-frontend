@@ -5,7 +5,6 @@ import { SocketService } from '../core/services/socket.service';
 import { UserService } from '../core/services/user.service';
 import { ToastrService } from 'ngx-toastr';
 import * as mediasoupClient from 'mediasoup-client';
-import { environment } from 'src/environments/environment';
 
 
 
@@ -42,7 +41,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   previewType: string | null = null;
   callType: 'audio' | 'video' = 'video';
   isGroupChat: boolean = false;
-  apiUrl: string = environment.apiUrl + '/';
 
   @ViewChild("myVideo") myVideo!: ElementRef;
   @ViewChild("userVideo") userVideo!: ElementRef;

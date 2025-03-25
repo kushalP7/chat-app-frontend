@@ -4,7 +4,6 @@ import { UserService } from '../core/services/user.service';
 import { SocketService } from '../core/services/socket.service';
 import { AuthService } from '../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
-import { environment } from 'src/environments/environment';
 import { Router } from '@angular/router';
 
 @Component({
@@ -33,7 +32,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   conversationId!: string;
   isTyping: boolean = false;
   users: any[] = [];
-  apiUrl = environment.apiUrl + '/';
 
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
   @ViewChild("myVideo") myVideo!: ElementRef;
@@ -168,7 +166,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.isGroupChat = false;
     this.receiverId = receiverId;
     this.username = name;
-    this.userProfile = avatar ? 'http://192.168.4.29:8080/' + avatar : 'assets/default-avatar.jpg';
+    this.userProfile = avatar ? avatar : 'assets/default-avatar.jpg';
     this.isStatus = status;
 
     if (!conversationId) {
@@ -188,7 +186,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
           this.conversationId = response.conversationId;
           this.socketService.joinConversation(response.conversationId);
           this.username = username;
-          this.userProfile = avatar ? 'http://192.168.4.29:8080/' + avatar : 'assets/default-avatar.jpg';
+          this.userProfile = avatar ? avatar : 'assets/default-avatar.jpg';
 
           this.loadMessages(this.conversationId);
           this.cdr.detectChanges();
@@ -203,7 +201,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   openGroupChat(group: any) {
     this.isGroupChat = true;
     this.groupname = group.groupName;
-    this.groupAvatar = group.groupAvatar ? 'http://192.168.4.29:8080/' + group.groupAvatar : 'assets/default-avatar.jpg';;
+    this.groupAvatar = group.groupAvatar ? group.groupAvatar : 'assets/default-avatar.jpg';;
     this.conversationId = group._id;
     this.groupMembers = group.members;
     this.loadMessages(this.conversationId);
