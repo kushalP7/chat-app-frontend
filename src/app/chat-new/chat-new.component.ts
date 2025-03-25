@@ -403,75 +403,41 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
 
-  // async callAudioUser() {
-  //   this.callInProgress = true;
-
-  //   try {
-  //     this.callType = 'audio';
-  //     this.myStream = await navigator.mediaDevices.getUserMedia({
-  //       audio: {
-  //         echoCancellation: true,
-  //         noiseSuppression: true,
-  //         sampleRate: 44100
-  //       },
-  //       video: false
-  //     });
-  //     this.setupAudioElements();
-  //     this.initializePeerConnection();
-
-  //     const offer = await this.peerConnection.createOffer();
-  //     await this.peerConnection.setLocalDescription(offer);
-
-  //     this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'audio');
-  //   } catch (error) {
-  //     console.error('Error starting audio call:', error);
-  //     this.toastr.error('Failed to start audio call');
-  //     this.callInProgress = false;
-  //   }
-  // }
-
-  // async callVideoUser() {
-  //   this.callInProgress = true;
-  //   this.callType = 'video';
-  //   try {
-  //     this.myStream = await navigator.mediaDevices.getUserMedia({
-  //       video: true, audio: {
-  //         echoCancellation: true,
-  //         noiseSuppression: true,
-  //         sampleRate: 44100
-  //       }
-  //     });
-
-  //     this.setupVideoElements();
-  //     this.initializePeerConnection();
-
-  //     const offer = await this.peerConnection.createOffer();
-  //     await this.peerConnection.setLocalDescription(offer);
-
-  //     this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
-  //   } catch (error) {
-  //     console.error('Error starting video call:', error);
-  //     this.toastr.error('Failed to start video call');
-  //     this.callInProgress = false;
-  //   }
-  // }
-  async callVideoUser() {
-    if (this.callInProgress) return;
-
+  async callAudioUser() {
     this.callInProgress = true;
-    this.callType = 'video';
 
     try {
-      // Get media with proper constraints
+      this.callType = 'audio';
       this.myStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
+          sampleRate: 44100
+        },
+        video: false
+      });
+      this.setupAudioElements();
+      this.initializePeerConnection();
+
+      const offer = await this.peerConnection.createOffer();
+      await this.peerConnection.setLocalDescription(offer);
+
+      this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'audio');
+    } catch (error) {
+      console.error('Error starting audio call:', error);
+      this.toastr.error('Failed to start audio call');
+      this.callInProgress = false;
+    }
+  }
+
+  async callVideoUser() {
+    this.callInProgress = true;
+    this.callType = 'video';
+    try {
+      this.myStream = await navigator.mediaDevices.getUserMedia({
+        video: true, audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
           sampleRate: 44100
         }
       });
@@ -479,62 +445,13 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       this.setupVideoElements();
       this.initializePeerConnection();
 
-      const offer = await this.peerConnection.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
-      });
-
+      const offer = await this.peerConnection.createOffer();
       await this.peerConnection.setLocalDescription(offer);
 
-      this.socketService.callUser(
-        this.receiverId,
-        offer,
-        this.authService.getLoggedInUser()._id,
-        'video'
-      );
+      this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
     } catch (error) {
       console.error('Error starting video call:', error);
       this.toastr.error('Failed to start video call');
-      this.callInProgress = false;
-    }
-  }
-
-  async callAudioUser() {
-    if (this.callInProgress) return;
-
-    this.callInProgress = true;
-    this.callType = 'audio';
-
-    try {
-      this.myStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100
-        },
-        video: false
-      });
-
-      this.setupAudioElements();
-      this.initializePeerConnection();
-
-      const offer = await this.peerConnection.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: false
-      });
-
-      await this.peerConnection.setLocalDescription(offer);
-
-      this.socketService.callUser(
-        this.receiverId,
-        offer,
-        this.authService.getLoggedInUser()._id,
-        'audio'
-      );
-    } catch (error) {
-      console.error('Error starting audio call:', error);
-      this.toastr.error('Failed to start audio call');
       this.callInProgress = false;
     }
   }
@@ -555,251 +472,84 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // private listenForCalls() {
-  //   this.socketService.onIncomingCall().subscribe(async (data: any) => {
-  //     if (!data.offer) return;
-  //     this.callType = data.callType;
-  //     const callType = data.callType === "video" ? "Video Call" : "Audio Call";
-  //     console.log('data', data);
-
-  //     if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
-  //       this.callInProgress = true;
-
-  //       try {
-  //         // this. = await navigator.mediaDevices.getUserMedia(
-  //         //   data.myStreamcallType === "video" ? { video: true, audio: true } : { audio: true, video: false }
-  //         // );
-  //         this.myStream = await navigator.mediaDevices.getUserMedia(
-  //           data.callType === "video" ? {
-  //             video: true, audio: {
-  //               echoCancellation: true,
-  //               noiseSuppression: true,
-  //               sampleRate: 44100
-  //             }
-  //           } : {
-  //             video: true,
-  //             audio: {
-  //               echoCancellation: true,
-  //               noiseSuppression: true,
-  //               sampleRate: 44100
-  //             }
-  //           });
-  //         if (data.callType === "video" && this.callType === 'video') {
-  //           this.setupVideoElements();
-  //         } else {
-  //           this.setupAudioElements();
-  //         }
-
-  //         this.initializePeerConnection();
-  //         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-  //         const answer = await this.peerConnection.createAnswer();
-  //         await this.peerConnection.setLocalDescription(answer);
-
-  //         this.socketService.answerCall(data.from, answer);
-  //       } catch (error) {
-  //         console.error('Error answering call:', error);
-  //         this.callInProgress = false;
-  //       }
-  //     }
-  //   });
-  // }
   private listenForCalls() {
     this.socketService.onIncomingCall().subscribe(async (data: any) => {
       if (!data.offer) return;
-
       this.callType = data.callType;
-      this.receiverId = data.from; // Make sure to set the receiverId
-
       const callType = data.callType === "video" ? "Video Call" : "Audio Call";
+      console.log('data', data);
 
       if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
         this.callInProgress = true;
 
         try {
-          // Get media based on call type
-          this.myStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: data.callType === "video"
-          });
+          this.myStream = await navigator.mediaDevices.getUserMedia(
+            data.myStreamcallType === "video" ? { video: true, audio: true } : { audio: true, video: false }
+          );
 
-          // Setup local media elements
-          if (data.callType === "video") {
+          if (data.callType === "video" && this.callType === 'video') {
             this.setupVideoElements();
           } else {
             this.setupAudioElements();
           }
 
           this.initializePeerConnection();
-
-          // Set remote description
           await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-          // Create and set local description
           const answer = await this.peerConnection.createAnswer();
           await this.peerConnection.setLocalDescription(answer);
 
-          // Send answer
           this.socketService.answerCall(data.from, answer);
         } catch (error) {
           console.error('Error answering call:', error);
-          this.toastr.error('Failed to answer call');
           this.callInProgress = false;
         }
       }
     });
-
-    // Handle ICE candidates from remote
-    this.socketService.onIceCandidate().subscribe(async (data: any) => {
-      if (this.peerConnection && data.candidate) {
-        try {
-          await this.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (e) {
-          console.error('Error adding ICE candidate:', e);
-        }
-      }
-    });
-
-    // Handle call acceptance
-    this.socketService.onCallAccepted().subscribe(async (data: any) => {
-      if (this.peerConnection && data.signal) {
-        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
-      }
-    });
   }
 
-  // private initializePeerConnection() {
-  //   if (this.peerConnection) {
-  //     this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
-  //     this.peerConnection.close();
-  //   }
-  //   this.peerConnection = new RTCPeerConnection(this.servers);
-  //   this.previousStreams.forEach(stream => {
-  //     stream.getTracks().forEach(track => track.stop());
-  //   });
-  //   this.previousStreams = [];
-
-  //   this.myStream.getTracks().forEach(track => {
-  //     this.peerConnection.addTrack(track, this.myStream);
-  //   });
-
-  //   this.previousStreams.push(this.myStream);
-
-
-  //   this.peerConnection.onicecandidate = (event) => {
-  //     if (event.candidate) {
-  //       this.socketService.sendIceCandidate(this.receiverId, event.candidate);
-  //     }
-  //   };
-
-  //   this.peerConnection.ontrack = (event) => {
-  //     if (event.track.kind === "video") {
-  //       if (!this.userVideo?.nativeElement.srcObject) {
-  //         this.userVideo.nativeElement.srcObject = new MediaStream();
-  //       }
-  //       const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-  //       remoteStream.addTrack(event.track);
-  //     }
-
-  //     if (event.track.kind === "audio") {
-  //       const audioElement = this.userVideo?.nativeElement || new Audio();
-  //       if (!audioElement.srcObject) {
-  //         audioElement.srcObject = new MediaStream();
-  //       }
-  //       (audioElement.srcObject as MediaStream).addTrack(event.track);
-  //       audioElement.play();
-  //     }
-  //   };
-  // }
 
   private initializePeerConnection() {
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
       this.peerConnection.close();
     }
-
-    this.peerConnection = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" },
-        { urls: "stun:stun3.l.google.com:19302" },
-        { urls: "stun:stun4.l.google.com:19302" }
-        // Add your TURN servers if needed for production
-        // { urls: 'turn:your-turn-server.com', username: 'user', credential: 'pass' }
-      ]
+    this.peerConnection = new RTCPeerConnection(this.servers);
+    this.previousStreams.forEach(stream => {
+      stream.getTracks().forEach(track => track.stop());
     });
+    this.previousStreams = [];
 
-    // Add local tracks
     this.myStream.getTracks().forEach(track => {
       this.peerConnection.addTrack(track, this.myStream);
     });
 
-    // Handle ICE candidates
+    this.previousStreams.push(this.myStream);
+
+
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         this.socketService.sendIceCandidate(this.receiverId, event.candidate);
       }
     };
 
-    // Properly handle remote tracks
     this.peerConnection.ontrack = (event) => {
-      const remoteStream = event.streams[0];
+      if (event.track.kind === "video") {
+        if (!this.userVideo?.nativeElement.srcObject) {
+          this.userVideo.nativeElement.srcObject = new MediaStream();
+        }
+        const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+        remoteStream.addTrack(event.track);
+      }
 
-      if (event.track.kind === 'video') {
-        if (this.userVideo?.nativeElement) {
-          this.userVideo.nativeElement.srcObject = remoteStream;
-          this.isUserVideoEnabled = true;
+      if (event.track.kind === "audio") {
+        const audioElement = this.userVideo?.nativeElement || new Audio();
+        if (!audioElement.srcObject) {
+          audioElement.srcObject = new MediaStream();
         }
-      } else if (event.track.kind === 'audio') {
-        // Create audio element if it doesn't exist
-        if (!this.userVideo?.nativeElement) {
-          const audioElement = new Audio();
-          audioElement.srcObject = remoteStream;
-          audioElement.autoplay = true;
-          document.body.appendChild(audioElement);
-        } else {
-          this.userVideo.nativeElement.srcObject = remoteStream;
-        }
+        (audioElement.srcObject as MediaStream).addTrack(event.track);
+        audioElement.play();
       }
     };
-
-    this.peerConnection.oniceconnectionstatechange = () => {
-      console.log('ICE connection state:', this.peerConnection.iceConnectionState);
-      if (this.peerConnection.iceConnectionState === 'disconnected') {
-        this.endCall();
-      }
-    };
-  }
-
-  // Add this to your component
-  private handleIceConnectionStateChange() {
-    if (this.peerConnection) {
-      this.peerConnection.oniceconnectionstatechange = () => {
-        console.log('ICE connection state:', this.peerConnection.iceConnectionState);
-        switch (this.peerConnection.iceConnectionState) {
-          case 'disconnected':
-          case 'failed':
-            this.endCall();
-            break;
-          case 'closed':
-            this.cleanupCall();
-            break;
-        }
-      };
-    }
-  }
-
-  private cleanupCall() {
-    if (this.myStream) {
-      this.myStream.getTracks().forEach(track => track.stop());
-    }
-    if (this.peerConnection) {
-      this.peerConnection.close();
-    }
-    this.callInProgress = false;
-    this.isMuted = false;
-    this.isVideoEnabled = true;
   }
 
   toggleVideo() {
@@ -872,7 +622,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   navigateToChat() {
-    this.router.navigate(['/chat']);
+    this.router.navigate(['/test']);
   }
 
 }
