@@ -36,6 +36,7 @@
                 <button class="btn btn-outline-primary" (click)="callVideoUser()">
                     <i class="fa-solid fa-video fa-sm"></i>
                 </button>
+                <button (click)="startRemoteVideo()">Start Video</button>
             </div>
             <div *ngIf="isGroupChat">
                 <button class="btn btn-outline-success" (click)="startGroupCall('audio')">
@@ -94,7 +95,7 @@
             <button class="btn btn-danger btn-sm" (click)="endCall()">
                 <i class="fa-solid fa-phone-slash"></i>
             </button>
-            <button (click)="startRemoteVideo()">Start Video</button>
+         
 
         </div>
     </div>
