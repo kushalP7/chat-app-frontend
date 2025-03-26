@@ -478,7 +478,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     //   }
     // };
     this.peerConnection.ontrack = (event) => {
-      console.log("Track received:", event.track.kind);
+      console.log("🔹 Track received:", event.track.kind, event.track);
     
       setTimeout(() => {
         if (event.track.kind === "video") {
@@ -488,8 +488,9 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
             }
             const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
             remoteStream.addTrack(event.track);
+            console.log("✅ Video track added to userVideo element.");
           } else {
-            console.warn("userVideo is not initialized yet.");
+            console.warn("❌ userVideo is not initialized.");
           }
         }
     
@@ -500,9 +501,11 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
           }
           (audioElement.srcObject as MediaStream).addTrack(event.track);
           audioElement.play();
+          console.log("✅ Audio track added and playing.");
         }
-      }, 500); // Delay to allow userVideo to initialize
+      }, 500);
     };
+    
     
   }
 
