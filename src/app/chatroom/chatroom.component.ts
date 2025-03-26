@@ -302,16 +302,24 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         }
       }
     });
-
+    console.log("PeerConnection State:", this.peerConnection.signalingState);
+    console.log("IceConnection State:", this.peerConnection.iceConnectionState);
+    
     this.socketService.onCallAccepted().subscribe(async (data: any) => {
       try {
         if (data.answer && this.peerConnection) {
-          await this.peerConnection.setRemoteDescription(data.answer);
+          setTimeout(async () => {
+            if (this.peerConnection.signalingState !== "stable") {
+              await this.peerConnection.setRemoteDescription(data.answer);
+            }
+          }, 100);
+          
         }
       } catch (error) {
         console.error('Error handling answer:', error);
       }
     });
+    
 
     this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
       if (candidate && this.peerConnection) {
@@ -379,18 +387,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         this.myVideo.nativeElement.muted = this.isMuted;
         this.myVideo.nativeElement.play();
       }
-      
-      if (!this.userVideo?.nativeElement) {
-        const container = document.querySelector('.video-call-container');
-        if (container) {
-          const videoEl = document.createElement('video');
-          videoEl.className = 'remote-video rounded border shadow';
-          videoEl.autoplay = true;
-          videoEl.playsInline = true;
-          container.appendChild(videoEl);
-          this.userVideo = { nativeElement: videoEl };
-        }
-      }
+      console.log(this.userVideo?.nativeElement);
     }
   }
 
@@ -448,7 +445,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         
         if (this.userVideo?.nativeElement) {
           this.userVideo.nativeElement.srcObject = remoteStream;
-        } else {
+        } else {  
           const videoElement = document.createElement('video');
           videoElement.srcObject = remoteStream;
           videoElement.autoplay = true;

@@ -17,14 +17,12 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
 const socketConfig: SocketIoConfig = {
   url: environment.apiUrl,
-
-};
-const config: SocketIoConfig = {
-  url: 'wss://chat-app-backend-3xyk.onrender.com',
   options: {
     transports: ['websocket', 'polling'] 
   }
+
 };
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -39,7 +37,7 @@ const config: SocketIoConfig = {
     AppRoutingModule,
     HttpClientModule,
     CommonModule,
-    SocketIoModule.forRoot(config),
+    SocketIoModule.forRoot(socketConfig),
     FormsModule,
     ReactiveFormsModule,
     SimplebarAngularModule,
