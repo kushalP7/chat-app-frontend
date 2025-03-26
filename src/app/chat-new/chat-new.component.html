@@ -54,10 +54,10 @@
                     class="nav nav-tabs nav-tabs-custom border-bottom-0 nav-justified">
 
                     <li [ngbNavItem]="1" class="nav-item">
-                        <a ngbNavLink href="javascript:void(0)" data-bs-toggle="tab" aria-expanded="true"
+                        <a ngbNavLink data-bs-toggle="tab" aria-expanded="true"
                             class="nav-link">
                             <i class="bx bx-chat font-size-20 d-sm-none"></i>
-                            <span class="d-none d-sm-block" (click)="loadChatConversations()">Chat</span>
+                            <span class="d-sm-block" (click)="loadChatConversations()">Chat</span>
                         </a>
                         <ng-template ngbNavContent>
                             <div class="px-0">
@@ -249,12 +249,12 @@
         <div class="card ">
             <div class="p-3 border-bottom">
                 <div class="row">
-                    <div class="col-xl-4 col-7">
+                    <div class="col-xl-4 col-4">
                         <div class="d-flex align-items-center">
-                            <div *ngIf="!isGroupChat && userProfile " class="flex-shrink-0  me-3 d-sm-block d-none">
+                            <div *ngIf="!isGroupChat && userProfile " class="flex-shrink-0  me-3">
                                 <img :src="{{userProfile}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
                             </div>
-                            <div *ngIf="isGroupChat" class="flex-shrink-0  me-3 d-sm-block d-none">
+                            <div *ngIf="isGroupChat" class="flex-shrink-0  me-3">
                                 <img :src="{{groupAvatar}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
                             </div>
                             <div *ngIf="!userProfile && !isGroupChat" class="avatar-sm align-self-center me-3"><span
@@ -283,7 +283,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-8 col-5">
+                    <div class="col-xl-8 col-8">
                         <ul class="list-inline user-chat-nav text-end mb-0">
                             <li class="list-inline-item">
                                 <div class="dropdown" ngbDropdown>

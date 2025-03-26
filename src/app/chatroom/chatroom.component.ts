@@ -367,16 +367,30 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     if (this.myStream) {
       const audioElement = new Audio();
       audioElement.srcObject = this.myStream;
-      audioElement.muted = true;
+      audioElement.muted = true; 
       audioElement.play();
     }
   }
 
   private setupVideoElements() {
-    if (this.myVideo?.nativeElement) {
-      this.myVideo.nativeElement.srcObject = this.myStream;
-      this.myVideo.nativeElement.muted = this.isMuted;
-      this.myVideo.nativeElement.play();
+    if (this.myStream) {
+      if (this.myVideo?.nativeElement) {
+        this.myVideo.nativeElement.srcObject = this.myStream;
+        this.myVideo.nativeElement.muted = this.isMuted;
+        this.myVideo.nativeElement.play();
+      }
+      
+      if (!this.userVideo?.nativeElement) {
+        const container = document.querySelector('.video-call-container');
+        if (container) {
+          const videoEl = document.createElement('video');
+          videoEl.className = 'remote-video rounded border shadow';
+          videoEl.autoplay = true;
+          videoEl.playsInline = true;
+          container.appendChild(videoEl);
+          this.userVideo = { nativeElement: videoEl };
+        }
+      }
     }
   }
 
@@ -391,10 +405,15 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     });
     this.previousStreams = [];
 
+    // this.myStream.getTracks().forEach(track => {
+    //   if (!this.peerConnection.getSenders().some(sender => sender.track === track)) {
+    //     this.peerConnection.addTrack(track, this.myStream);
+    //   }
+    // });
     this.myStream.getTracks().forEach(track => {
       this.peerConnection.addTrack(track, this.myStream);
     });
-
+  
     this.previousStreams.push(this.myStream);
 
 
@@ -404,21 +423,44 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }
     };
 
+    // this.peerConnection.ontrack = (event) => {
+    //   if (event.track.kind === "video") {
+    //     if (!this.userVideo?.nativeElement.srcObject) {
+    //       this.userVideo.nativeElement.srcObject = new MediaStream();
+    //     }
+    //     const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+    //     remoteStream.addTrack(event.track);
+    //   }
+
+    //   if (event.track.kind === "audio") {
+    //     const audioElement = this.userVideo?.nativeElement || new Audio();
+    //     if (!audioElement.srcObject) {
+    //       audioElement.srcObject = new MediaStream();
+    //     }
+    //     (audioElement.srcObject as MediaStream).addTrack(event.track);
+    //     audioElement.play();
+    //   }
+    // };
     this.peerConnection.ontrack = (event) => {
       if (event.track.kind === "video") {
-        if (!this.userVideo?.nativeElement.srcObject) {
-          this.userVideo.nativeElement.srcObject = new MediaStream();
-        }
-        const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+        const remoteStream = new MediaStream();
         remoteStream.addTrack(event.track);
-      }
-
-      if (event.track.kind === "audio") {
-        const audioElement = this.userVideo?.nativeElement || new Audio();
-        if (!audioElement.srcObject) {
-          audioElement.srcObject = new MediaStream();
+        
+        if (this.userVideo?.nativeElement) {
+          this.userVideo.nativeElement.srcObject = remoteStream;
+        } else {
+          const videoElement = document.createElement('video');
+          videoElement.srcObject = remoteStream;
+          videoElement.autoplay = true;
+          videoElement.playsInline = true;
+          videoElement.className = 'remote-video rounded border shadow';
+          document.querySelector('.video-call-container')?.appendChild(videoElement);
         }
-        (audioElement.srcObject as MediaStream).addTrack(event.track);
+      }
+    
+      if (event.track.kind === "audio") {
+        const audioElement = new Audio();
+        audioElement.srcObject = new MediaStream([event.track]);
         audioElement.play();
       }
     };
@@ -447,12 +489,19 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       this.peerConnection.close();
       this.peerConnection = null!;
     }
+    
     if (this.myStream) {
       this.myStream.getTracks().forEach(track => track.stop());
     }
+    
+    document.querySelectorAll('.remote-video').forEach(el => {
+      if (el !== this.userVideo?.nativeElement) {
+        el.remove();
+      }
+    });
+    
     this.callInProgress = false;
   }
-
 
   openPreview(url: string, type: string) {
     this.previewUrl = url;

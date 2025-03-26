@@ -22,6 +22,7 @@ export class SocketService {
     private toastr: ToastrService
   ) {
     this.autoReconnect();
+    
   }
 
   connectWithToken() {
