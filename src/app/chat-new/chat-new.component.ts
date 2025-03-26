@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { UserService } from '../core/services/user.service';
 import { SocketService } from '../core/services/socket.service';
@@ -14,7 +14,7 @@ import { Router } from '@angular/router';
 export class ChatNewComponent implements OnInit, AfterViewInit {
   chatData!: any[];
   groupChatData!: any[];
-  username:string = this.authService.getLoggedInUser().username;
+  username: string = this.authService.getLoggedInUser().username;
   groupname!: string;
   formData!: FormGroup;
   userProfile: string = '';
@@ -104,8 +104,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    console.log('receiverId', this.receiverId);
-
     this.formData = this.formBuilder.group({
       message: ['', Validators.required]
     });
@@ -145,7 +143,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   onLogoutClick() {
     this.socketService.disconnectSocket();
     this.authService.logout();
-    this.toastr.success('Logout Successfully', '', {timeOut: 2000});            
+    this.toastr.success('Logout Successfully', '', { timeOut: 2000 });
 
   }
 
@@ -180,9 +178,11 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  chatUsername(name: string, avatar: any, status: boolean, conversationId: string, username: string, receiverId: string) {
+  chatUsername(name: string, avatar: any, status: boolean, conversationId: string, receiverId: string) {
+
     this.isGroupChat = false;
     this.receiverId = receiverId;
+
     this.username = name;
     this.userProfile = avatar;
     this.isStatus = status;
@@ -249,8 +249,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       content: this.message,
       createdAt: new Date().toISOString(),
     };
-
-    console.log('messageData', messageData);
     if (this.file) {
       this.socketService.uploadFile(this.file).subscribe(response => {
         messageData.fileUrl = response.fileUrl;
@@ -397,9 +395,8 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         this.groupForm.reset();
         this.selectedMembers = [];
       },
-      error: (error) => {
+      error: () => {
         this.toastr.error('Failed to create group.', '', { timeOut: 2000 });
-        console.log(error);
       }
     });
   }

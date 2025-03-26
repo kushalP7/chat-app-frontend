@@ -49,7 +49,17 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   private peerConnection!: RTCPeerConnection;
   private servers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
+      { urls: 'stun:stun.l.google.com:19302' },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal123",
+        username: "kushal123"
+      },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal124",
+        username: "kushal124"
+      }
     ]
   };
   callInProgress = false;
@@ -116,7 +126,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
-  async ngOnInit() {
+  ngOnInit() {
     this.isGroupChat = !!this.groupId;
     this.loadMessages();
     this.listenForCalls();
@@ -302,24 +312,16 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         }
       }
     });
-    console.log("PeerConnection State:", this.peerConnection.signalingState);
-    console.log("IceConnection State:", this.peerConnection.iceConnectionState);
     
     this.socketService.onCallAccepted().subscribe(async (data: any) => {
       try {
         if (data.answer && this.peerConnection) {
-          setTimeout(async () => {
-            if (this.peerConnection.signalingState !== "stable") {
-              await this.peerConnection.setRemoteDescription(data.answer);
-            }
-          }, 100);
-          
+          await this.peerConnection.setRemoteDescription(data.answer);
         }
       } catch (error) {
         console.error('Error handling answer:', error);
       }
     });
-    
 
     this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
       if (candidate && this.peerConnection) {
@@ -381,13 +383,10 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   }
 
   private setupVideoElements() {
-    if (this.myStream) {
-      if (this.myVideo?.nativeElement) {
-        this.myVideo.nativeElement.srcObject = this.myStream;
-        this.myVideo.nativeElement.muted = this.isMuted;
-        this.myVideo.nativeElement.play();
-      }
-      console.log(this.userVideo?.nativeElement);
+    if (this.myVideo?.nativeElement) {
+      this.myVideo.nativeElement.srcObject = this.myStream;
+      this.myVideo.nativeElement.muted = this.isMuted;
+      this.myVideo.nativeElement.play();
     }
   }
 
@@ -420,44 +419,21 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }
     };
 
-    // this.peerConnection.ontrack = (event) => {
-    //   if (event.track.kind === "video") {
-    //     if (!this.userVideo?.nativeElement.srcObject) {
-    //       this.userVideo.nativeElement.srcObject = new MediaStream();
-    //     }
-    //     const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-    //     remoteStream.addTrack(event.track);
-    //   }
-
-    //   if (event.track.kind === "audio") {
-    //     const audioElement = this.userVideo?.nativeElement || new Audio();
-    //     if (!audioElement.srcObject) {
-    //       audioElement.srcObject = new MediaStream();
-    //     }
-    //     (audioElement.srcObject as MediaStream).addTrack(event.track);
-    //     audioElement.play();
-    //   }
-    // };
     this.peerConnection.ontrack = (event) => {
       if (event.track.kind === "video") {
-        const remoteStream = new MediaStream();
-        remoteStream.addTrack(event.track);
-        
-        if (this.userVideo?.nativeElement) {
-          this.userVideo.nativeElement.srcObject = remoteStream;
-        } else {  
-          const videoElement = document.createElement('video');
-          videoElement.srcObject = remoteStream;
-          videoElement.autoplay = true;
-          videoElement.playsInline = true;
-          videoElement.className = 'remote-video rounded border shadow';
-          document.querySelector('.video-call-container')?.appendChild(videoElement);
+        if (!this.userVideo?.nativeElement.srcObject) {
+          this.userVideo.nativeElement.srcObject = new MediaStream();
         }
+        const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+        remoteStream.addTrack(event.track);
       }
-    
+
       if (event.track.kind === "audio") {
-        const audioElement = new Audio();
-        audioElement.srcObject = new MediaStream([event.track]);
+        const audioElement = this.userVideo?.nativeElement || new Audio();
+        if (!audioElement.srcObject) {
+          audioElement.srcObject = new MediaStream();
+        }
+        (audioElement.srcObject as MediaStream).addTrack(event.track);
         audioElement.play();
       }
     };
@@ -486,17 +462,9 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       this.peerConnection.close();
       this.peerConnection = null!;
     }
-    
     if (this.myStream) {
       this.myStream.getTracks().forEach(track => track.stop());
     }
-    
-    document.querySelectorAll('.remote-video').forEach(el => {
-      if (el !== this.userVideo?.nativeElement) {
-        el.remove();
-      }
-    });
-    
     this.callInProgress = false;
   }
 

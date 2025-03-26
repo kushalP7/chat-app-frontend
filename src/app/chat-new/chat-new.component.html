@@ -68,7 +68,7 @@
                                             <li class="" *ngFor="let data of chatData"
                                                 [ngClass]="{'active': data.receiver?.username == username}">
                                                 <a href="javascript: void(0);" style="border: 0.5px solid #e2e5e8  ;"
-                                                    (click)="chatUsername(data.receiver?.username, data.receiver.avatar, data.receiver.isOnline, data._id, data.receiver?.username, data.receiver._id)">
+                                                    (click)="chatUsername(data.receiver?.username, data.receiver.avatar, data.receiver.isOnline, data._id, data.receiver._id)">
                                                     <div class="d-flex align-items-start">
                                                         <div
                                                             class="flex-shrink-0 user-img {{data.status}} align-self-center me-3">
@@ -197,7 +197,7 @@
                                                     <ul class="list-unstyled chat-list">
                                                         <li>
                                                             <a href="javascript:void(0);"
-                                                                (click)="chatUsername(user.username, user.avatar, user.isOnline, user.conversationId, user.username, user._id)">
+                                                                (click)="chatUsername(user.username, user.avatar, user.isOnline, user.conversationId, user._id)">
                                                                 <div class="d-flex align-items-start">
                                                                     <div
                                                                         class="flex-shrink-0 user-img align-self-center me-3">
