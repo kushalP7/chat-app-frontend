@@ -481,11 +481,20 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       console.log("🔹 Track received:", event.track.kind, event.track);
     
       setTimeout(() => {
+        console.log("🎥 userVideo Element:", this.userVideo?.nativeElement);
+        if (!this.userVideo?.nativeElement) {
+          console.warn("❌ userVideo element is still undefined.");
+        }
         if (event.track.kind === "video") {
           if (this.userVideo?.nativeElement) {
+            this.userVideo.nativeElement.muted = false; // Ensure unmuted
+
             if (!this.userVideo.nativeElement.srcObject) {
               this.userVideo.nativeElement.srcObject = new MediaStream();
             }
+            this.userVideo.nativeElement.play().catch((error:any) => {
+              console.error("❌ Error trying to play remote video:", error);
+            });
             const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
             remoteStream.addTrack(event.track);
             event.track.enabled = true;
@@ -510,6 +519,12 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     
     
   }
+  startRemoteVideo() {
+    if (this.userVideo?.nativeElement) {
+      this.userVideo.nativeElement.play();
+    }
+  }
+  
 
   endCall() {
     if (this.peerConnection) {
