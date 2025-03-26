@@ -66,6 +66,8 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   isMuted: boolean = false;
   isVideoEnabled: boolean = true;
   private previousStreams: MediaStream[] = [];
+  private pendingCandidates: RTCIceCandidate[] = [];
+
   private mediasoupDevice: mediasoupClient.Device | null = null;
   private sendTransport: mediasoupClient.types.Transport | null = null;
   private recvTransport: any | null = null;
@@ -135,7 +137,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     this.isGroupChat = !!this.groupId;
     this.loadMessages();
     this.listenForCalls();
-    this.debugPeerConnectionStats();
 
   }
 
@@ -318,21 +319,55 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }
     });
     
+    // this.socketService.onCallAccepted().subscribe(async (data: any) => {
+    //   try {
+    //     if (data.answer && this.peerConnection) {
+    //       await this.peerConnection.setRemoteDescription(data.answer);
+    //     }
+    //   } catch (error) {
+    //     console.error('Error handling answer:', error);
+    //   }
+    // });
     this.socketService.onCallAccepted().subscribe(async (data: any) => {
       try {
         if (data.answer && this.peerConnection) {
-          await this.peerConnection.setRemoteDescription(data.answer);
+          if (this.peerConnection.signalingState === "stable") {
+            console.warn("Skipping setRemoteDescription as state is already stable.");
+            return;
+          }
+          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
         }
       } catch (error) {
         console.error('Error handling answer:', error);
       }
     });
+    
 
-    this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
-      if (candidate && this.peerConnection) {
-        this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    // this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
+    //   if (candidate && this.peerConnection) {
+    //     this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    //   }
+    // });
+
+    this.socketService.onIceCandidate().subscribe(async (candidate: RTCIceCandidate) => {
+      try {
+        if (!this.peerConnection) {
+          console.warn("Peer connection is not available.");
+          return;
+        }
+    
+        if (!this.peerConnection.remoteDescription) {
+          console.warn("Remote description is null. Storing candidate for later.");
+          this.pendingCandidates.push(new RTCIceCandidate(candidate));
+          return;
+        }
+    
+        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error('Error adding ICE Candidate:', error);
       }
     });
+    
   }
 
   async callAudioUser() {
@@ -469,19 +504,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }, 500); // Delay to allow userVideo to initialize
     };
     
-  }
-
-  private debugPeerConnectionStats() {
-    setInterval(async () => {
-      if (!this.peerConnection) return;
-
-      const stats = await this.peerConnection.getStats();
-      stats.forEach(report => {
-        if (report.type === 'inbound-rtp') {
-          console.log('Inbound RTP:', report);
-        }
-      });
-    }, 5000);
   }
 
   endCall() {
