@@ -124,6 +124,11 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     if (this.chatWindow) {
       this.scrollToBottom();
     }
+    setTimeout(() => {
+      if (!this.userVideo) {
+        console.warn("userVideo is still undefined after view init.");
+      }
+    }, 1000);
   }
 
   ngOnInit() {
@@ -419,24 +424,51 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }
     };
 
-    this.peerConnection.ontrack = (event) => {
-      if (event.track.kind === "video") {
-        if (!this.userVideo?.nativeElement.srcObject) {
-          this.userVideo.nativeElement.srcObject = new MediaStream();
-        }
-        const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-        remoteStream.addTrack(event.track);
-      }
+    // this.peerConnection.ontrack = (event) => {
+    //   if (event.track.kind === "video") {
+    //     if (!this.userVideo?.nativeElement.srcObject) {
+    //       this.userVideo.nativeElement.srcObject = new MediaStream();
+    //     }
+    //     const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+    //     remoteStream.addTrack(event.track);
+    //   }
 
-      if (event.track.kind === "audio") {
-        const audioElement = this.userVideo?.nativeElement || new Audio();
-        if (!audioElement.srcObject) {
-          audioElement.srcObject = new MediaStream();
+    //   if (event.track.kind === "audio") {
+    //     const audioElement = this.userVideo?.nativeElement || new Audio();
+    //     if (!audioElement.srcObject) {
+    //       audioElement.srcObject = new MediaStream();
+    //     }
+    //     (audioElement.srcObject as MediaStream).addTrack(event.track);
+    //     audioElement.play();
+    //   }
+    // };
+    this.peerConnection.ontrack = (event) => {
+      console.log("Track received:", event.track.kind);
+    
+      setTimeout(() => {
+        if (event.track.kind === "video") {
+          if (this.userVideo?.nativeElement) {
+            if (!this.userVideo.nativeElement.srcObject) {
+              this.userVideo.nativeElement.srcObject = new MediaStream();
+            }
+            const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+            remoteStream.addTrack(event.track);
+          } else {
+            console.warn("userVideo is not initialized yet.");
+          }
         }
-        (audioElement.srcObject as MediaStream).addTrack(event.track);
-        audioElement.play();
-      }
+    
+        if (event.track.kind === "audio") {
+          const audioElement = this.userVideo?.nativeElement || new Audio();
+          if (!audioElement.srcObject) {
+            audioElement.srcObject = new MediaStream();
+          }
+          (audioElement.srcObject as MediaStream).addTrack(event.track);
+          audioElement.play();
+        }
+      }, 500); // Delay to allow userVideo to initialize
     };
+    
   }
 
   private debugPeerConnectionStats() {
