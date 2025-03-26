@@ -488,6 +488,8 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
             }
             const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
             remoteStream.addTrack(event.track);
+            event.track.enabled = true;
+
             console.log("✅ Video track added to userVideo element.");
           } else {
             console.warn("❌ userVideo is not initialized.");
