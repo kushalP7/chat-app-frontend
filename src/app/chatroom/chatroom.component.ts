@@ -134,7 +134,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     this.isGroupChat = !!this.groupId;
     this.loadMessages();
     this.listenForCalls();
-    this.logPeerConnectionState();
 
   }
 
@@ -293,43 +292,30 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
       this.callInProgress = true;
       this.callType = data.callType;
-      // Get user media
       this.myStream = await navigator.mediaDevices.getUserMedia(
         this.callType === "video" ?
-          {
-            video: {
-              width: { min: 640, ideal: 1280, max: 1920 },
-              height: { min: 480, ideal: 720, max: 1080 },
-              frameRate: { ideal: 30, max: 60 }
-            },
-            audio: true
-          } :
+          { video: true, audio: true } :
           { audio: true, video: false }
       );
 
-      // Setup video/audio elements based on call type
       if (this.callType === "video") {
         this.setupVideoElements();
       } else {
         this.setupAudioElements();
       }
 
-      // Initialize peer connection
       this.initializePeerConnection();
 
-      // Set remote description
       await this.peerConnection.setRemoteDescription(
         new RTCSessionDescription(data.offer)
       );
 
-      // Create answer
       const answer = await this.peerConnection.createAnswer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: true
       });
       await this.peerConnection.setLocalDescription(answer);
 
-      // Send answer through signaling
       this.socketService.answerCall(data.from, answer);
     } catch (error) {
       console.error('Error answering call:', error);
@@ -337,91 +323,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
-
-  // private listenForCalls() {
-  //   this.socketService.onIncomingCall().subscribe(async (data: any) => {
-  //     if (!data.offer) return;
-  //     this.callType = data.callType;
-  //     const callType = data.callType === "video" ? "Video Call" : "Audio Call";
-  //     console.log('data', data);
-
-  //     if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
-  //       this.callInProgress = true;
-
-  //       try {
-  //         this.myStream = await navigator.mediaDevices.getUserMedia(
-  //           data.callType === "video" ? { video: true, audio: true } : { audio: true, video: false }
-  //         );
-
-  //         if (data.callType === "video" && this.callType === 'video') {
-  //           this.setupVideoElements();
-  //         } else {
-  //           this.setupAudioElements();
-  //         }
-
-  //         this.initializePeerConnection();
-  //         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-  //         const answer = await this.peerConnection.createAnswer();
-  //         await this.peerConnection.setLocalDescription(answer);
-
-  //         this.socketService.answerCall(data.from, answer);
-  //       } catch (error) {
-  //         console.error('Error answering call:', error);
-  //         this.callInProgress = false;
-  //       }
-  //     }
-  //   });
-
-  //   // this.socketService.onCallAccepted().subscribe(async (data: any) => {
-  //   //   try {
-  //   //     if (data.answer && this.peerConnection) {
-  //   //       await this.peerConnection.setRemoteDescription(data.answer);
-  //   //     }
-  //   //   } catch (error) {
-  //   //     console.error('Error handling answer:', error);
-  //   //   }
-  //   // });
-  //   this.socketService.onCallAccepted().subscribe(async (data: any) => {
-  //     try {
-  //       if (data.answer && this.peerConnection) {
-  //         if (this.peerConnection.signalingState === "stable") {
-  //           console.warn("Skipping setRemoteDescription as state is already stable.");
-  //           return;
-  //         }
-  //         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-  //       }
-  //     } catch (error) {
-  //       console.error('Error handling answer:', error);
-  //     }
-  //   });
-
-
-  //   // this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
-  //   //   if (candidate && this.peerConnection) {
-  //   //     this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-  //   //   }
-  //   // });
-
-  //   this.socketService.onIceCandidate().subscribe(async (candidate: RTCIceCandidate) => {
-  //     try {
-  //       if (!this.peerConnection) {
-  //         console.warn("Peer connection is not available.");
-  //         return;
-  //       }
-
-  //       if (!this.peerConnection.remoteDescription) {
-  //         console.warn("Remote description is null. Storing candidate for later.");
-  //         this.pendingCandidates.push(new RTCIceCandidate(candidate));
-  //         return;
-  //       }
-
-  //       await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-  //     } catch (error) {
-  //       console.error('Error adding ICE Candidate:', error);
-  //     }
-  //   });
-
-  // }
   private listenForCalls() {
     this.socketService.onIncomingCall().subscribe(async (data: any) => {
       if (!data.offer) return;
@@ -436,13 +337,11 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       try {
         if (!data.answer || !this.peerConnection) return;
 
-        // Check current signaling state
         if (this.peerConnection.signalingState === 'stable') {
           console.warn('Already in stable state, ignoring answer');
           return;
         }
 
-        // Only proceed if we're in 'have-local-offer' state
         if (this.peerConnection.signalingState === 'have-local-offer') {
           await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
         } else {
@@ -495,69 +394,29 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // async callVideoUser() {
-  //   try {
-  //     if (this.callInProgress) {
-  //       this.toastr.warning('Call already in progress');
-  //       return;
-  //     }
-  //     this.callInProgress = true;
-  //     this.callType = 'video';
-  //     this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-  //     this.setupVideoElements();
-  //     this.initializePeerConnection();
-
-  //     const offer = await this.peerConnection.createOffer({
-  //       offerToReceiveAudio: true,
-  //       offerToReceiveVideo: true
-  //     });
-  //     await this.peerConnection.setLocalDescription(offer);
-
-  //     this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
-
-  //   } catch (error) {
-  //     console.error('Error starting video call:', error);
-  //     this.toastr.error('Failed to start video call');
-  //     this.callInProgress = false;
-  //   }
-  // }
   async callVideoUser() {
     try {
+      if (this.callInProgress) {
+        this.toastr.warning('Call already in progress');
+        return;
+      }
       this.callInProgress = true;
       this.callType = 'video';
+      this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
-      // Get user media with video
-      this.myStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: true
-      });
-
-      // Debug: Check if video tracks exist
-      console.log('Video tracks:', this.myStream.getVideoTracks());
-
-      // Setup local video element
-      if (this.myVideo?.nativeElement) {
-        this.myVideo.nativeElement.srcObject = this.myStream;
-        this.myVideo.nativeElement.muted = true;
-        this.myVideo.nativeElement.play().catch((e: any) => console.error('Local video play error:', e));
-      }
-
+      this.setupVideoElements();
       this.initializePeerConnection();
 
-      // Explicitly request video in the offer
       const offer = await this.peerConnection.createOffer({
-        offerToReceiveVideo: true,
-        offerToReceiveAudio: true
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
       });
-
       await this.peerConnection.setLocalDescription(offer);
+
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
+
     } catch (error) {
-      console.error('Video call error:', error);
+      console.error('Error starting video call:', error);
       this.toastr.error('Failed to start video call');
       this.callInProgress = false;
     }
@@ -572,136 +431,40 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // private setupVideoElements() {
-  //   if (this.myVideo?.nativeElement) {
-  //     this.myVideo.nativeElement.srcObject = this.myStream;
-  //     this.myVideo.nativeElement.muted = this.isMuted;
-  //     this.myVideo.nativeElement.play();
-  //   }
-  // }
+
   private setupVideoElements() {
     if (this.myVideo?.nativeElement) {
       this.myVideo.nativeElement.srcObject = this.myStream;
-      this.myVideo.nativeElement.muted = true; // Mute local video
+      this.myVideo.nativeElement.muted = true;
       this.myVideo.nativeElement.play().catch((error: any) => {
         console.error("Error playing local video:", error);
       });
     }
+
+    if (this.userVideo?.nativeElement) {
+      this.userVideo.nativeElement.srcObject = null;
+    }
   }
 
-  // private initializePeerConnection() {
-  //   if (this.peerConnection) {
-  //     this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
-  //     this.peerConnection.close();
-  //   }
-  //   this.peerConnection = new RTCPeerConnection(this.servers);
-  //   this.previousStreams.forEach(stream => {
-  //     stream.getTracks().forEach(track => track.stop());
-  //   });
-  //   this.previousStreams = [];
-
-  //   // this.myStream.getTracks().forEach(track => {
-  //   //   if (!this.peerConnection.getSenders().some(sender => sender.track === track)) {
-  //   //     this.peerConnection.addTrack(track, this.myStream);
-  //   //   }
-  //   // });
-  //   this.myStream.getTracks().forEach(track => {
-  //     this.peerConnection.addTrack(track, this.myStream);
-  //   });
-
-  //   this.previousStreams.push(this.myStream);
-
-
-  //   this.peerConnection.onicecandidate = (event) => {
-  //     if (event.candidate) {
-  //       this.socketService.sendIceCandidate(this.receiverId, event.candidate);
-  //     }
-  //   };
-
-  //   // this.peerConnection.ontrack = (event) => {
-  //   //   if (event.track.kind === "video") {
-  //   //     if (!this.userVideo?.nativeElement.srcObject) {
-  //   //       this.userVideo.nativeElement.srcObject = new MediaStream();
-  //   //     }
-  //   //     const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-  //   //     remoteStream.addTrack(event.track);
-  //   //   }
-
-  //   //   if (event.track.kind === "audio") {
-  //   //     const audioElement = this.userVideo?.nativeElement || new Audio();
-  //   //     if (!audioElement.srcObject) {
-  //   //       audioElement.srcObject = new MediaStream();
-  //   //     }
-  //   //     (audioElement.srcObject as MediaStream).addTrack(event.track);
-  //   //     audioElement.play();
-  //   //   }
-  //   // };
-  //   this.peerConnection.ontrack = (event) => {
-  //     console.log("🔹 Track received:", event.track.kind, event.track);
-
-  //     setTimeout(() => {
-  //       console.log("🎥 userVideo Element:", this.userVideo?.nativeElement);
-  //       if (!this.userVideo?.nativeElement) {
-  //         console.warn("❌ userVideo element is still undefined.");
-  //       }
-  //       if (event.track.kind === "video") {
-  //         if (this.userVideo?.nativeElement) {
-  //           this.userVideo.nativeElement.muted = false; // Ensure unmuted
-
-  //           if (!this.userVideo.nativeElement.srcObject) {
-  //             this.userVideo.nativeElement.srcObject = new MediaStream();
-  //           }
-  //           this.userVideo.nativeElement.play().catch((error:any) => {
-  //             console.error("❌ Error trying to play remote video:", error);
-  //           });
-  //           const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-  //           remoteStream.addTrack(event.track);
-  //           event.track.enabled = true;
-
-  //           console.log("✅ Video track added to userVideo element.");
-  //         } else {
-  //           console.warn("❌ userVideo is not initialized.");
-  //         }
-  //       }
-
-  //       if (event.track.kind === "audio") {
-  //         const audioElement = this.userVideo?.nativeElement || new Audio();
-  //         if (!audioElement.srcObject) {
-  //           audioElement.srcObject = new MediaStream();
-  //         }
-  //         (audioElement.srcObject as MediaStream).addTrack(event.track);
-  //         audioElement.play();
-  //         console.log("✅ Audio track added and playing.");
-  //       }
-  //     }, 500);
-  //   };
-
-
-  // }
   private initializePeerConnection() {
-    // Clean up previous connection if exists
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
       this.peerConnection.close();
       this.peerConnection = null!;
     }
 
-    // Create new connection
     this.peerConnection = new RTCPeerConnection(this.servers);
 
-    // Add local tracks
     this.myStream.getTracks().forEach(track => {
       this.peerConnection.addTrack(track, this.myStream);
     });
 
-    // Handle ICE candidates
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         this.socketService.sendIceCandidate(this.receiverId, event.candidate);
       }
     };
 
-    // Handle remote tracks
     this.peerConnection.ontrack = (event) => {
       console.log("Received track:", event.track.kind);
 
@@ -715,12 +478,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }
 
       const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-      remoteStream.getTracks().forEach(track => {
-        if (track.kind === event.track.kind) {
-          remoteStream.removeTrack(track);
-        }
-      });
-
       remoteStream.addTrack(event.track);
       if (event.track.kind === 'video') {
         this.userVideo.nativeElement.play()
@@ -733,7 +490,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       });
     };
 
-    // Process any pending ICE candidates
     if (this.pendingCandidates.length > 0) {
       this.pendingCandidates.forEach(async candidate => {
         try {
@@ -746,56 +502,16 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
-  // endCall() {
-  //   if (this.peerConnection) {
-  //     this.peerConnection.getSenders().forEach(sender => {
-  //       if (sender.track) {
-  //         sender.track.stop();
-  //       }
-  //     });
-  //     this.peerConnection.close();
-  //     this.peerConnection = null!;
-  //   }
-  //   if (this.myStream) {
-  //     this.myStream.getTracks().forEach(track => track.stop());
-  //   }
-  //   this.callInProgress = false;
-  // }
-  logPeerConnectionState() {
-    if (!this.peerConnection) return;
-
-    console.group('WebRTC State');
-    console.log('SignalingState:', this.peerConnection.signalingState);
-    console.log('IceConnectionState:', this.peerConnection.iceConnectionState);
-    console.log('ConnectionState:', this.peerConnection.connectionState);
-
-    console.log('Local SDP:', this.peerConnection.localDescription);
-    console.log('Remote SDP:', this.peerConnection.remoteDescription);
-
-    console.log('Senders:', this.peerConnection.getSenders().map(s => ({
-      track: s.track?.kind,
-      parameters: s.getParameters()
-    })));
-
-    console.log('Receivers:', this.peerConnection.getReceivers().map(r => ({
-      track: r.track?.kind,
-      parameters: r.getParameters()
-    })));
-
-    console.groupEnd();
-  }
-
   endCall() {
     if (this.myStream) {
       this.myStream.getTracks().forEach(track => track.stop());
       this.myStream = null!;
     }
-
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => {
         if (sender.track) sender.track.stop();
       });
-      this.peerConnection.close();  
+      this.peerConnection.close();
       this.peerConnection = null!;
     }
 
@@ -924,14 +640,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
     try {
       this.myStream = await navigator.mediaDevices.getUserMedia(
-        callType === 'video' ? {
-          video: {
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 },
-            frameRate: { ideal: 30, max: 60 }
-          },
-          audio: true
-        } : { audio: true, video: false }
+        callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
       );
 
       if (callType === 'video') {
@@ -968,14 +677,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
     try {
       this.myStream = await navigator.mediaDevices.getUserMedia(
-        this.callType === 'video' ? {
-          video: {
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 },
-            frameRate: { ideal: 30, max: 60 }
-          },
-          audio: true
-        } : { audio: true, video: false }
+        this.callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
       );
 
       if (this.callType === 'video') {
