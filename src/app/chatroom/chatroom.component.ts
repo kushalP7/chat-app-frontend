@@ -128,11 +128,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     if (this.chatWindow) {
       this.scrollToBottom();
     }
-    setTimeout(() => {
-      if (!this.userVideo) {
-        console.warn("userVideo is still undefined after view init.");
-      }
-    }, 1000);
   }
 
   ngOnInit() {
@@ -290,8 +285,13 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     if (!data.offer) return;
 
     try {
-      this.callInProgress = true;
+      if (this.callInProgress) {
+        this.toastr.warning('Already in a call');
+        return;
+      }
 
+      this.callInProgress = true;
+      this.callType = data.callType;
       // Get user media
       this.myStream = await navigator.mediaDevices.getUserMedia(
         this.callType === "video" ?
@@ -315,7 +315,10 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       );
 
       // Create answer
-      const answer = await this.peerConnection.createAnswer();
+      const answer = await this.peerConnection.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await this.peerConnection.setLocalDescription(answer);
 
       // Send answer through signaling
@@ -425,8 +428,18 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       try {
         if (!data.answer || !this.peerConnection) return;
 
-        const remoteDesc = new RTCSessionDescription(data.answer);
-        await this.peerConnection.setRemoteDescription(remoteDesc);
+        // Check current signaling state
+        if (this.peerConnection.signalingState === 'stable') {
+          console.warn('Already in stable state, ignoring answer');
+          return;
+        }
+
+        // Only proceed if we're in 'have-local-offer' state
+        if (this.peerConnection.signalingState === 'have-local-offer') {
+          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        } else {
+          console.warn(`Cannot set remote answer in state: ${this.peerConnection.signalingState}`);
+        }
       } catch (error) {
         console.error('Error handling answer:', error);
       }
@@ -476,6 +489,10 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
   async callVideoUser() {
     try {
+      if (this.callInProgress) {
+        this.toastr.warning('Call already in progress');
+        return;
+      }
       this.callInProgress = true;
       this.callType = 'video';
       this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
