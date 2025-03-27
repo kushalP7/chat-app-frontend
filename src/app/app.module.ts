@@ -15,12 +15,13 @@ import { ChatNewComponent } from './chat-new/chat-new.component';
 import { SimplebarAngularModule } from 'simplebar-angular';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
-const socketConfig: SocketIoConfig = {
+const socketConfig = {
   url: environment.apiUrl,
   options: {
     transports: ['websocket', 'polling'] 
-  }
-
+  },
+  secure: true,
+  
 };
 
 @NgModule({

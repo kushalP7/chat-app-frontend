@@ -134,6 +134,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     this.isGroupChat = !!this.groupId;
     this.loadMessages();
     this.listenForCalls();
+    this.logPeerConnectionState();
 
   }
 
@@ -295,7 +296,14 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       // Get user media
       this.myStream = await navigator.mediaDevices.getUserMedia(
         this.callType === "video" ?
-          { video: true, audio: true } :
+          {
+            video: {
+              width: { min: 640, ideal: 1280, max: 1920 },
+              height: { min: 480, ideal: 720, max: 1080 },
+              frameRate: { ideal: 30, max: 60 }
+            },
+            audio: true
+          } :
           { audio: true, video: false }
       );
 
@@ -487,29 +495,69 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
+  // async callVideoUser() {
+  //   try {
+  //     if (this.callInProgress) {
+  //       this.toastr.warning('Call already in progress');
+  //       return;
+  //     }
+  //     this.callInProgress = true;
+  //     this.callType = 'video';
+  //     this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+  //     this.setupVideoElements();
+  //     this.initializePeerConnection();
+
+  //     const offer = await this.peerConnection.createOffer({
+  //       offerToReceiveAudio: true,
+  //       offerToReceiveVideo: true
+  //     });
+  //     await this.peerConnection.setLocalDescription(offer);
+
+  //     this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
+
+  //   } catch (error) {
+  //     console.error('Error starting video call:', error);
+  //     this.toastr.error('Failed to start video call');
+  //     this.callInProgress = false;
+  //   }
+  // }
   async callVideoUser() {
     try {
-      if (this.callInProgress) {
-        this.toastr.warning('Call already in progress');
-        return;
-      }
       this.callInProgress = true;
       this.callType = 'video';
-      this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
-      this.setupVideoElements();
+      // Get user media with video
+      this.myStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: true
+      });
+
+      // Debug: Check if video tracks exist
+      console.log('Video tracks:', this.myStream.getVideoTracks());
+
+      // Setup local video element
+      if (this.myVideo?.nativeElement) {
+        this.myVideo.nativeElement.srcObject = this.myStream;
+        this.myVideo.nativeElement.muted = true;
+        this.myVideo.nativeElement.play().catch((e: any) => console.error('Local video play error:', e));
+      }
+
       this.initializePeerConnection();
 
+      // Explicitly request video in the offer
       const offer = await this.peerConnection.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
+        offerToReceiveVideo: true,
+        offerToReceiveAudio: true
       });
+
       await this.peerConnection.setLocalDescription(offer);
-
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
-
     } catch (error) {
-      console.error('Error starting video call:', error);
+      console.error('Video call error:', error);
       this.toastr.error('Failed to start video call');
       this.callInProgress = false;
     }
@@ -538,10 +586,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       this.myVideo.nativeElement.play().catch((error: any) => {
         console.error("Error playing local video:", error);
       });
-    }
-
-    if (this.userVideo?.nativeElement) {
-      this.userVideo.nativeElement.srcObject = null;
     }
   }
 
@@ -671,8 +715,18 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }
 
       const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-      remoteStream.addTrack(event.track);
+      remoteStream.getTracks().forEach(track => {
+        if (track.kind === event.track.kind) {
+          remoteStream.removeTrack(track);
+        }
+      });
 
+      remoteStream.addTrack(event.track);
+      if (event.track.kind === 'video') {
+        this.userVideo.nativeElement.play()
+          .then(() => console.log('Remote video playing'))
+          .catch((e: any) => console.error('Remote video play failed:', e));
+      }
       // Play the video
       this.userVideo.nativeElement.play().catch((error: any) => {
         console.error("Error playing video:", error);
@@ -707,33 +761,53 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   //   }
   //   this.callInProgress = false;
   // }
-  endCall() {
-    if (this.peerConnection) {
-      this.peerConnection.getSenders().forEach(sender => {
-        if (sender.track) {
-          sender.track.stop();
-        }
-      });
-      this.peerConnection.close();
-      this.peerConnection = null!;
-    }
+  logPeerConnectionState() {
+    if (!this.peerConnection) return;
 
+    console.group('WebRTC State');
+    console.log('SignalingState:', this.peerConnection.signalingState);
+    console.log('IceConnectionState:', this.peerConnection.iceConnectionState);
+    console.log('ConnectionState:', this.peerConnection.connectionState);
+
+    console.log('Local SDP:', this.peerConnection.localDescription);
+    console.log('Remote SDP:', this.peerConnection.remoteDescription);
+
+    console.log('Senders:', this.peerConnection.getSenders().map(s => ({
+      track: s.track?.kind,
+      parameters: s.getParameters()
+    })));
+
+    console.log('Receivers:', this.peerConnection.getReceivers().map(r => ({
+      track: r.track?.kind,
+      parameters: r.getParameters()
+    })));
+
+    console.groupEnd();
+  }
+
+  endCall() {
     if (this.myStream) {
       this.myStream.getTracks().forEach(track => track.stop());
       this.myStream = null!;
     }
 
-    // Clear video elements
+    if (this.peerConnection) {
+      this.peerConnection.getSenders().forEach(sender => {
+        if (sender.track) sender.track.stop();
+      });
+      this.peerConnection.close();  
+      this.peerConnection = null!;
+    }
+
     if (this.myVideo?.nativeElement) {
       this.myVideo.nativeElement.srcObject = null;
     }
-
     if (this.userVideo?.nativeElement) {
       this.userVideo.nativeElement.srcObject = null;
     }
 
     this.callInProgress = false;
-    this.pendingCandidates = [];
+    console.log('Call ended and cleaned up');
   }
 
   openPreview(url: string, type: string) {
@@ -850,7 +924,14 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
     try {
       this.myStream = await navigator.mediaDevices.getUserMedia(
-        callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
+        callType === 'video' ? {
+          video: {
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 },
+            frameRate: { ideal: 30, max: 60 }
+          },
+          audio: true
+        } : { audio: true, video: false }
       );
 
       if (callType === 'video') {
@@ -887,7 +968,14 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
 
     try {
       this.myStream = await navigator.mediaDevices.getUserMedia(
-        this.callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
+        this.callType === 'video' ? {
+          video: {
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 },
+            frameRate: { ideal: 30, max: 60 }
+          },
+          audio: true
+        } : { audio: true, video: false }
       );
 
       if (this.callType === 'video') {
