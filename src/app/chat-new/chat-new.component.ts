@@ -118,7 +118,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.socketService.messagesMarkedRead().subscribe(data => {
       this.handleMessagesMarkedRead(data);
     });
-    this.debugPeerConnectionStats();
+    // this.debugPeerConnectionStats();
 
 
   }
@@ -693,18 +693,18 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.callInProgress = false;
   }
 
-  private debugPeerConnectionStats() {
-    setInterval(async () => {
-      if (!this.peerConnection) return;
+  // private debugPeerConnectionStats() {
+  //   setInterval(async () => {
+  //     if (!this.peerConnection) return;
 
-      const stats = await this.peerConnection.getStats();
-      stats.forEach(data => {
-        if (data.type === 'inbound-rtp') {
-          console.log('inbound-rtp:', data);
-        }
-      });
-    }, 5000);
-  }
+  //     const stats = await this.peerConnection.getStats();
+  //     stats.forEach(data => {
+  //       if (data.type === 'inbound-rtp') {
+  //         console.log('inbound-rtp:', data);
+  //       }
+  //     });
+  //   }, 5000);
+  // }
 
   navigateToChat() {
     this.router.navigate(['/test']);

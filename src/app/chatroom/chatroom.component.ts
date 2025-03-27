@@ -50,6 +50,8 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   private servers = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
       {
         urls: "stun:stun.l.google.com:19302",
         credential: "kushal123",
@@ -284,90 +286,169 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   removeSelectedImage() {
     this.fileName = "";
   }
+  async answerCall(data: any) {
+    if (!data.offer) return;
 
+    try {
+      this.callInProgress = true;
+
+      // Get user media
+      this.myStream = await navigator.mediaDevices.getUserMedia(
+        this.callType === "video" ?
+          { video: true, audio: true } :
+          { audio: true, video: false }
+      );
+
+      // Setup video/audio elements based on call type
+      if (this.callType === "video") {
+        this.setupVideoElements();
+      } else {
+        this.setupAudioElements();
+      }
+
+      // Initialize peer connection
+      this.initializePeerConnection();
+
+      // Set remote description
+      await this.peerConnection.setRemoteDescription(
+        new RTCSessionDescription(data.offer)
+      );
+
+      // Create answer
+      const answer = await this.peerConnection.createAnswer();
+      await this.peerConnection.setLocalDescription(answer);
+
+      // Send answer through signaling
+      this.socketService.answerCall(data.from, answer);
+    } catch (error) {
+      console.error('Error answering call:', error);
+      this.callInProgress = false;
+    }
+  }
+
+
+  // private listenForCalls() {
+  //   this.socketService.onIncomingCall().subscribe(async (data: any) => {
+  //     if (!data.offer) return;
+  //     this.callType = data.callType;
+  //     const callType = data.callType === "video" ? "Video Call" : "Audio Call";
+  //     console.log('data', data);
+
+  //     if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
+  //       this.callInProgress = true;
+
+  //       try {
+  //         this.myStream = await navigator.mediaDevices.getUserMedia(
+  //           data.callType === "video" ? { video: true, audio: true } : { audio: true, video: false }
+  //         );
+
+  //         if (data.callType === "video" && this.callType === 'video') {
+  //           this.setupVideoElements();
+  //         } else {
+  //           this.setupAudioElements();
+  //         }
+
+  //         this.initializePeerConnection();
+  //         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+  //         const answer = await this.peerConnection.createAnswer();
+  //         await this.peerConnection.setLocalDescription(answer);
+
+  //         this.socketService.answerCall(data.from, answer);
+  //       } catch (error) {
+  //         console.error('Error answering call:', error);
+  //         this.callInProgress = false;
+  //       }
+  //     }
+  //   });
+
+  //   // this.socketService.onCallAccepted().subscribe(async (data: any) => {
+  //   //   try {
+  //   //     if (data.answer && this.peerConnection) {
+  //   //       await this.peerConnection.setRemoteDescription(data.answer);
+  //   //     }
+  //   //   } catch (error) {
+  //   //     console.error('Error handling answer:', error);
+  //   //   }
+  //   // });
+  //   this.socketService.onCallAccepted().subscribe(async (data: any) => {
+  //     try {
+  //       if (data.answer && this.peerConnection) {
+  //         if (this.peerConnection.signalingState === "stable") {
+  //           console.warn("Skipping setRemoteDescription as state is already stable.");
+  //           return;
+  //         }
+  //         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+  //       }
+  //     } catch (error) {
+  //       console.error('Error handling answer:', error);
+  //     }
+  //   });
+
+
+  //   // this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
+  //   //   if (candidate && this.peerConnection) {
+  //   //     this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+  //   //   }
+  //   // });
+
+  //   this.socketService.onIceCandidate().subscribe(async (candidate: RTCIceCandidate) => {
+  //     try {
+  //       if (!this.peerConnection) {
+  //         console.warn("Peer connection is not available.");
+  //         return;
+  //       }
+
+  //       if (!this.peerConnection.remoteDescription) {
+  //         console.warn("Remote description is null. Storing candidate for later.");
+  //         this.pendingCandidates.push(new RTCIceCandidate(candidate));
+  //         return;
+  //       }
+
+  //       await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+  //     } catch (error) {
+  //       console.error('Error adding ICE Candidate:', error);
+  //     }
+  //   });
+
+  // }
   private listenForCalls() {
     this.socketService.onIncomingCall().subscribe(async (data: any) => {
       if (!data.offer) return;
       this.callType = data.callType;
-      const callType = data.callType === "video" ? "Video Call" : "Audio Call";
-      console.log('data', data);
 
-      if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
-        this.callInProgress = true;
-
-        try {
-          this.myStream = await navigator.mediaDevices.getUserMedia(
-            data.callType === "video" ? { video: true, audio: true } : { audio: true, video: false }
-          );
-
-          if (data.callType === "video" && this.callType === 'video') {
-            this.setupVideoElements();
-          } else {
-            this.setupAudioElements();
-          }
-
-          this.initializePeerConnection();
-          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-          const answer = await this.peerConnection.createAnswer();
-          await this.peerConnection.setLocalDescription(answer);
-
-          this.socketService.answerCall(data.from, answer);
-        } catch (error) {
-          console.error('Error answering call:', error);
-          this.callInProgress = false;
-        }
+      if (confirm(`${data.from} is calling. Accept ${data.callType} call?`)) {
+        await this.answerCall(data);
       }
     });
-    
-    // this.socketService.onCallAccepted().subscribe(async (data: any) => {
-    //   try {
-    //     if (data.answer && this.peerConnection) {
-    //       await this.peerConnection.setRemoteDescription(data.answer);
-    //     }
-    //   } catch (error) {
-    //     console.error('Error handling answer:', error);
-    //   }
-    // });
+
     this.socketService.onCallAccepted().subscribe(async (data: any) => {
       try {
-        if (data.answer && this.peerConnection) {
-          if (this.peerConnection.signalingState === "stable") {
-            console.warn("Skipping setRemoteDescription as state is already stable.");
-            return;
-          }
-          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
+        if (!data.answer || !this.peerConnection) return;
+
+        const remoteDesc = new RTCSessionDescription(data.answer);
+        await this.peerConnection.setRemoteDescription(remoteDesc);
       } catch (error) {
         console.error('Error handling answer:', error);
       }
     });
-    
-
-    // this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
-    //   if (candidate && this.peerConnection) {
-    //     this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-    //   }
-    // });
 
     this.socketService.onIceCandidate().subscribe(async (candidate: RTCIceCandidate) => {
       try {
         if (!this.peerConnection) {
-          console.warn("Peer connection is not available.");
-          return;
-        }
-    
-        if (!this.peerConnection.remoteDescription) {
-          console.warn("Remote description is null. Storing candidate for later.");
           this.pendingCandidates.push(new RTCIceCandidate(candidate));
           return;
         }
-    
+
+        if (!this.peerConnection.remoteDescription) {
+          this.pendingCandidates.push(new RTCIceCandidate(candidate));
+          return;
+        }
+
         await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (error) {
-        console.error('Error adding ICE Candidate:', error);
+        console.error('Error adding ICE candidate:', error);
       }
     });
-    
   }
 
   async callAudioUser() {
@@ -394,18 +475,22 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   }
 
   async callVideoUser() {
-    this.callInProgress = true;
-    this.callType = 'video';
     try {
+      this.callInProgress = true;
+      this.callType = 'video';
       this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
       this.setupVideoElements();
       this.initializePeerConnection();
 
-      const offer = await this.peerConnection.createOffer();
+      const offer = await this.peerConnection.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await this.peerConnection.setLocalDescription(offer);
 
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
+
     } catch (error) {
       console.error('Error starting video call:', error);
       this.toastr.error('Failed to start video call');
@@ -417,115 +502,194 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     if (this.myStream) {
       const audioElement = new Audio();
       audioElement.srcObject = this.myStream;
-      audioElement.muted = true; 
+      audioElement.muted = true;
       audioElement.play();
     }
   }
 
+  // private setupVideoElements() {
+  //   if (this.myVideo?.nativeElement) {
+  //     this.myVideo.nativeElement.srcObject = this.myStream;
+  //     this.myVideo.nativeElement.muted = this.isMuted;
+  //     this.myVideo.nativeElement.play();
+  //   }
+  // }
   private setupVideoElements() {
     if (this.myVideo?.nativeElement) {
       this.myVideo.nativeElement.srcObject = this.myStream;
-      this.myVideo.nativeElement.muted = this.isMuted;
-      this.myVideo.nativeElement.play();
+      this.myVideo.nativeElement.muted = true; // Mute local video
+      this.myVideo.nativeElement.play().catch((error: any) => {
+        console.error("Error playing local video:", error);
+      });
+    }
+
+    if (this.userVideo?.nativeElement) {
+      this.userVideo.nativeElement.srcObject = null;
     }
   }
 
+  // private initializePeerConnection() {
+  //   if (this.peerConnection) {
+  //     this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
+  //     this.peerConnection.close();
+  //   }
+  //   this.peerConnection = new RTCPeerConnection(this.servers);
+  //   this.previousStreams.forEach(stream => {
+  //     stream.getTracks().forEach(track => track.stop());
+  //   });
+  //   this.previousStreams = [];
+
+  //   // this.myStream.getTracks().forEach(track => {
+  //   //   if (!this.peerConnection.getSenders().some(sender => sender.track === track)) {
+  //   //     this.peerConnection.addTrack(track, this.myStream);
+  //   //   }
+  //   // });
+  //   this.myStream.getTracks().forEach(track => {
+  //     this.peerConnection.addTrack(track, this.myStream);
+  //   });
+
+  //   this.previousStreams.push(this.myStream);
+
+
+  //   this.peerConnection.onicecandidate = (event) => {
+  //     if (event.candidate) {
+  //       this.socketService.sendIceCandidate(this.receiverId, event.candidate);
+  //     }
+  //   };
+
+  //   // this.peerConnection.ontrack = (event) => {
+  //   //   if (event.track.kind === "video") {
+  //   //     if (!this.userVideo?.nativeElement.srcObject) {
+  //   //       this.userVideo.nativeElement.srcObject = new MediaStream();
+  //   //     }
+  //   //     const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+  //   //     remoteStream.addTrack(event.track);
+  //   //   }
+
+  //   //   if (event.track.kind === "audio") {
+  //   //     const audioElement = this.userVideo?.nativeElement || new Audio();
+  //   //     if (!audioElement.srcObject) {
+  //   //       audioElement.srcObject = new MediaStream();
+  //   //     }
+  //   //     (audioElement.srcObject as MediaStream).addTrack(event.track);
+  //   //     audioElement.play();
+  //   //   }
+  //   // };
+  //   this.peerConnection.ontrack = (event) => {
+  //     console.log("🔹 Track received:", event.track.kind, event.track);
+
+  //     setTimeout(() => {
+  //       console.log("🎥 userVideo Element:", this.userVideo?.nativeElement);
+  //       if (!this.userVideo?.nativeElement) {
+  //         console.warn("❌ userVideo element is still undefined.");
+  //       }
+  //       if (event.track.kind === "video") {
+  //         if (this.userVideo?.nativeElement) {
+  //           this.userVideo.nativeElement.muted = false; // Ensure unmuted
+
+  //           if (!this.userVideo.nativeElement.srcObject) {
+  //             this.userVideo.nativeElement.srcObject = new MediaStream();
+  //           }
+  //           this.userVideo.nativeElement.play().catch((error:any) => {
+  //             console.error("❌ Error trying to play remote video:", error);
+  //           });
+  //           const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+  //           remoteStream.addTrack(event.track);
+  //           event.track.enabled = true;
+
+  //           console.log("✅ Video track added to userVideo element.");
+  //         } else {
+  //           console.warn("❌ userVideo is not initialized.");
+  //         }
+  //       }
+
+  //       if (event.track.kind === "audio") {
+  //         const audioElement = this.userVideo?.nativeElement || new Audio();
+  //         if (!audioElement.srcObject) {
+  //           audioElement.srcObject = new MediaStream();
+  //         }
+  //         (audioElement.srcObject as MediaStream).addTrack(event.track);
+  //         audioElement.play();
+  //         console.log("✅ Audio track added and playing.");
+  //       }
+  //     }, 500);
+  //   };
+
+
+  // }
   private initializePeerConnection() {
+    // Clean up previous connection if exists
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
       this.peerConnection.close();
+      this.peerConnection = null!;
     }
-    this.peerConnection = new RTCPeerConnection(this.servers);
-    this.previousStreams.forEach(stream => {
-      stream.getTracks().forEach(track => track.stop());
-    });
-    this.previousStreams = [];
 
-    // this.myStream.getTracks().forEach(track => {
-    //   if (!this.peerConnection.getSenders().some(sender => sender.track === track)) {
-    //     this.peerConnection.addTrack(track, this.myStream);
-    //   }
-    // });
+    // Create new connection
+    this.peerConnection = new RTCPeerConnection(this.servers);
+
+    // Add local tracks
     this.myStream.getTracks().forEach(track => {
       this.peerConnection.addTrack(track, this.myStream);
     });
-  
-    this.previousStreams.push(this.myStream);
 
-
+    // Handle ICE candidates
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         this.socketService.sendIceCandidate(this.receiverId, event.candidate);
       }
     };
 
-    // this.peerConnection.ontrack = (event) => {
-    //   if (event.track.kind === "video") {
-    //     if (!this.userVideo?.nativeElement.srcObject) {
-    //       this.userVideo.nativeElement.srcObject = new MediaStream();
-    //     }
-    //     const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-    //     remoteStream.addTrack(event.track);
-    //   }
-
-    //   if (event.track.kind === "audio") {
-    //     const audioElement = this.userVideo?.nativeElement || new Audio();
-    //     if (!audioElement.srcObject) {
-    //       audioElement.srcObject = new MediaStream();
-    //     }
-    //     (audioElement.srcObject as MediaStream).addTrack(event.track);
-    //     audioElement.play();
-    //   }
-    // };
+    // Handle remote tracks
     this.peerConnection.ontrack = (event) => {
-      console.log("🔹 Track received:", event.track.kind, event.track);
-    
-      setTimeout(() => {
-        console.log("🎥 userVideo Element:", this.userVideo?.nativeElement);
-        if (!this.userVideo?.nativeElement) {
-          console.warn("❌ userVideo element is still undefined.");
-        }
-        if (event.track.kind === "video") {
-          if (this.userVideo?.nativeElement) {
-            this.userVideo.nativeElement.muted = false; // Ensure unmuted
+      console.log("Received track:", event.track.kind);
 
-            if (!this.userVideo.nativeElement.srcObject) {
-              this.userVideo.nativeElement.srcObject = new MediaStream();
-            }
-            this.userVideo.nativeElement.play().catch((error:any) => {
-              console.error("❌ Error trying to play remote video:", error);
-            });
-            const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-            remoteStream.addTrack(event.track);
-            event.track.enabled = true;
+      if (!this.userVideo?.nativeElement) {
+        console.error("userVideo element not found");
+        return;
+      }
 
-            console.log("✅ Video track added to userVideo element.");
-          } else {
-            console.warn("❌ userVideo is not initialized.");
-          }
-        }
-    
-        if (event.track.kind === "audio") {
-          const audioElement = this.userVideo?.nativeElement || new Audio();
-          if (!audioElement.srcObject) {
-            audioElement.srcObject = new MediaStream();
-          }
-          (audioElement.srcObject as MediaStream).addTrack(event.track);
-          audioElement.play();
-          console.log("✅ Audio track added and playing.");
-        }
-      }, 500);
+      if (!this.userVideo.nativeElement.srcObject) {
+        this.userVideo.nativeElement.srcObject = new MediaStream();
+      }
+
+      const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+      remoteStream.addTrack(event.track);
+
+      // Play the video
+      this.userVideo.nativeElement.play().catch((error: any) => {
+        console.error("Error playing video:", error);
+      });
     };
-    
-    
-  }
-  startRemoteVideo() {
-    if (this.userVideo?.nativeElement) {
-      this.userVideo.nativeElement.play();
+
+    // Process any pending ICE candidates
+    if (this.pendingCandidates.length > 0) {
+      this.pendingCandidates.forEach(async candidate => {
+        try {
+          await this.peerConnection.addIceCandidate(candidate);
+        } catch (error) {
+          console.error("Error adding pending ICE candidate:", error);
+        }
+      });
+      this.pendingCandidates = [];
     }
   }
-  
 
+  // endCall() {
+  //   if (this.peerConnection) {
+  //     this.peerConnection.getSenders().forEach(sender => {
+  //       if (sender.track) {
+  //         sender.track.stop();
+  //       }
+  //     });
+  //     this.peerConnection.close();
+  //     this.peerConnection = null!;
+  //   }
+  //   if (this.myStream) {
+  //     this.myStream.getTracks().forEach(track => track.stop());
+  //   }
+  //   this.callInProgress = false;
+  // }
   endCall() {
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => {
@@ -536,10 +700,23 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       this.peerConnection.close();
       this.peerConnection = null!;
     }
+
     if (this.myStream) {
       this.myStream.getTracks().forEach(track => track.stop());
+      this.myStream = null!;
     }
+
+    // Clear video elements
+    if (this.myVideo?.nativeElement) {
+      this.myVideo.nativeElement.srcObject = null;
+    }
+
+    if (this.userVideo?.nativeElement) {
+      this.userVideo.nativeElement.srcObject = null;
+    }
+
     this.callInProgress = false;
+    this.pendingCandidates = [];
   }
 
   openPreview(url: string, type: string) {
