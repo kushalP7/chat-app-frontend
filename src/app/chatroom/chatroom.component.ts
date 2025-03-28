@@ -1,12 +1,8 @@
-
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnInit, Output, Renderer2, SimpleChanges, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Output, Renderer2, SimpleChanges, ViewChild } from '@angular/core';
 import { AuthService } from '../core/services/auth.service';
 import { SocketService } from '../core/services/socket.service';
 import { UserService } from '../core/services/user.service';
 import { ToastrService } from 'ngx-toastr';
-import * as mediasoupClient from 'mediasoup-client';
-
-
 
 
 @Component({
@@ -17,21 +13,20 @@ import * as mediasoupClient from 'mediasoup-client';
 export class ChatroomComponent implements OnInit, AfterViewInit {
 
   @Input() conversationId!: string;
+  @Input() receiverId!: string;
+  @Input() receiverName!: string;
+  @ViewChild('chatWindow') private chatWindow!: ElementRef;
+  @Output() messageSent = new EventEmitter<{ conversationId: string, content: string, createdAt: string }>();
+  
   @Input() groupId  !: string;
   @Input() groupName!: string;
   @Input() groupMembers!: any[];
   @Input() activeSection!: string;
 
-  @Input() receiverId!: string;
-  @Input() receiverName!: string;
-  @ViewChild('chatWindow') private chatWindow!: ElementRef;
-  @Output() messageSent = new EventEmitter<{ conversationId: string, content: string, createdAt: string }>();
-
   receiverAvatar!: string;
-  groupAvatar!: string;
   message: string = '';
   fileName: string = '';
-  messageArray: Array<{ userId: string, content?: string, fileUrl?: string, type: string, createdAt: string, senderName?: string }> = [];
+  messageArray: Array<{ userId: string, content?: string, fileUrl?: string, type: string, createdAt: string }> = [];
   isTyping: boolean = false;
   isOnline: boolean = false;
   lastSeen: string | null = null;
@@ -40,7 +35,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   previewUrl: string | null = null;
   previewType: string | null = null;
   callType: 'audio' | 'video' = 'video';
-  isGroupChat: boolean = false;
+
 
   @ViewChild("myVideo") myVideo!: ElementRef;
   @ViewChild("userVideo") userVideo!: ElementRef;
@@ -49,40 +44,19 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   private peerConnection!: RTCPeerConnection;
   private servers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      {
-        urls: "stun:stun.l.google.com:19302",
-        credential: "kushal123",
-        username: "kushal123"
-      },
-      {
-        urls: "stun:stun.l.google.com:19302",
-        credential: "kushal124",
-        username: "kushal124"
-      }
+      { urls: 'stun:stun.l.google.com:19302' }
     ]
   };
   callInProgress = false;
   isMuted: boolean = false;
   isVideoEnabled: boolean = true;
   private previousStreams: MediaStream[] = [];
-  private pendingCandidates: RTCIceCandidate[] = [];
-
-  private mediasoupDevice: mediasoupClient.Device | null = null;
-  private sendTransport: mediasoupClient.types.Transport | null = null;
-  private recvTransport: any | null = null;
-  private producers: { [key: string]: mediasoupClient.types.Producer } = {};
-  private consumers: { [key: string]: mediasoupClient.types.Consumer } = {};
-
 
   constructor(
     private socketService: SocketService,
     public authService: AuthService,
     public userService: UserService,
     private toastr: ToastrService,
-
 
   ) {
     this.socketService.newMessageReceived().subscribe(data => {
@@ -92,30 +66,11 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         this.messageArray.push(data);
       }
       this.isTyping = false;
-      this.messageSent.emit({ conversationId: this.conversationId, content: data.content, createdAt: data.createdAt });
+      this.messageSent.emit({ conversationId: this.conversationId, content: this.message, createdAt: data.createdAt });
+
       setTimeout(() => this.scrollToBottom(), 100);
-    });
-
-    this.socketService.newGroupMessageReceived().subscribe((data) => {
-      if (data.conversationId !== this.groupId) return;
-      if (!this.messageArray.some(msg => msg.createdAt === data.createdAt)) {
-        this.userService.getUserById(data.userId).subscribe({
-          next: (response) => {
-            console.log('response', response);
-            data.senderName = response.data.username;
-            this.messageArray.push(data);
-            this.isTyping = false;
-            this.messageSent.emit({ conversationId: this.groupId, content: data.content, createdAt: data.createdAt });
-            setTimeout(() => this.scrollToBottom(), 100);
-          },
-          error: (error) => {
-            console.log("Error fetching user:", error);
-          }
-        });
-      }
 
     });
-
 
     this.socketService.receivedTyping().subscribe(data => {
       if (data.userId !== this.authService.getLoggedInUser()._id) {
@@ -130,10 +85,11 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
-  ngOnInit() {
-    this.isGroupChat = !!this.groupId;
+  ngOnInit(): void {
     this.loadMessages();
     this.listenForCalls();
+
+    this.debugPeerConnectionStats();
 
   }
 
@@ -142,110 +98,69 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     window.removeEventListener('beforeunload', this.endCall.bind(this));
   }
 
+
   ngOnChanges(changes: SimpleChanges): void {
-    if ((changes['conversationId'] && !changes['conversationId'].firstChange) ||
-      (changes['groupId'] && !changes['groupId'].firstChange)) {
+    if (changes['conversationId'] && !changes['conversationId'].firstChange) {
       this.loadMessages();
     }
 
-    this.isGroupChat = !!this.groupId;
-    if (this.activeSection === 'groups') {
-      this.userService.getGroupInfo(this.groupId).subscribe({
-        next: (response) => {
-          this.groupName = response.data.groupName
-          this.groupMembers = response.data.membersDetails
-          this.groupAvatar = response.data.groupAvatar
-        },
-        error: (error) => {
-          console.log(error);
-        }
-      })
-    }
-    if (this.activeSection === 'oneToOne') {
-      this.userService.getUserById(this.receiverId).subscribe({
-        next: (response) => {
-          this.receiverName = response.data.username;
-          this.receiverAvatar = response.data.avatar;
-          this.isOnline = response.data.isOnline;
-          this.lastSeen = response.data.lastSeen;
-        },
-        error: (error) => {
-          console.log(error);
-        }
-      })
-    }
+    this.userService.getUserById(this.receiverId).subscribe({
+      next: (response) => {
+        this.receiverName = response.data.username;
+        this.receiverAvatar = response.data.avatar;
+        this.isOnline = response.data.isOnline;
+        this.lastSeen = response.data.lastSeen;
+      },
+      error: (error) => {
+        console.log(error);
+      }
+    })
   }
 
-
   private loadMessages(): void {
-    if (this.isGroupChat) {
-      this.socketService.joinGroup(this.conversationId);
-      this.userService.getMessages(this.groupId).subscribe(response => {
-        if (response.success) {
-          this.messageArray = response.data.map((message: any) => {
-            const sender = this.groupMembers.find(member => member._id === message.userId);
-            if (sender) {
-              message.senderName = sender.username;
-            }
-            return message;
-          });
-          setTimeout(() => this.scrollToBottom(), 100);
-        }
-      });
-    } else {
-      this.socketService.joinConversation(this.conversationId);
-      this.userService.getMessages(this.conversationId).subscribe(response => {
-        if (response.success) {
-          this.messageArray = response.data;
-          setTimeout(() => this.scrollToBottom(), 100);
-        }
-      });
-    }
+    this.socketService.joinConversation(this.conversationId);
+    this.userService.getMessages(this.conversationId).subscribe(response => {
+      if (response.success) {
+        this.messageArray = response.data;
+
+        setTimeout(() => this.scrollToBottom(), 100);
+      }
+    });
   }
 
   sendMessage() {
     const userId = this.authService.getLoggedInUser()._id;
-    const messageData: any = {
-      user: userId,
-      conversationId: this.conversationId,
-      content: this.message,
-      createdAt: new Date().toISOString()
-    };
     if (this.file) {
       this.socketService.uploadFile(this.file).subscribe(response => {
-        messageData.fileUrl = response.fileUrl;
-        if (this.file?.type.startsWith("image")) {
-          messageData.type = "image";
-        } else if (this.file?.type.startsWith("video")) {
-          messageData.type = "video";
-        } else if (this.file?.type.startsWith("audio")) {
-          messageData.type = "audio";
-        } else if (this.file?.type === "application/pdf") {
-          messageData.type = "pdf";
-        } else {
-          messageData.type = "unknown";
-        }
-        if (this.isGroupChat) {
-          messageData.conversationId = this.groupId;
-          this.socketService.sendGroupMessage(messageData);
-        } else {
-          this.socketService.sendMessage(messageData);
-        }
+        const messageData = {
+          user: userId,
+          conversationId: this.conversationId,
+          content: this.message,
+          fileUrl: response.fileUrl,
+          type: this.file?.type.startsWith("image") ? "image" : this.file?.type.startsWith("video") ? "video" : "audio",
+          createdAt: new Date().toISOString()
+        };
+
+        this.socketService.sendMessage(messageData);
+
         this.file = null;
         this.fileName = "";
         this.message = "";
         setTimeout(() => this.scrollToBottom(), 100);
       });
     } else {
-      messageData.type = "text";
-      if (this.isGroupChat) {
-        messageData.conversationId = this.groupId;
-        this.socketService.sendGroupMessage(messageData);
-      } else {
-        this.socketService.sendMessage(messageData);
-      }
-      setTimeout(() => this.scrollToBottom(), 100);
+      const messageData = {
+        user: userId,
+        conversationId: this.conversationId,
+        content: this.message,
+        type: "text",
+        createdAt: new Date().toISOString()
+      };
+
+      this.socketService.sendMessage(messageData);
+
       this.message = "";
+      setTimeout(() => this.scrollToBottom(), 100);
     }
 
   }
@@ -274,102 +189,131 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         this.chatWindow.nativeElement.scrollTop = this.chatWindow.nativeElement.scrollHeight;
       }, 50);
     } catch (error: any) {
-      this.toastr.error(error.error.message, '', { timeOut: 2000 });
+      this.toastr.error(error.message, '', { timeOut: 2000 });
     }
   }
 
   removeSelectedImage() {
     this.fileName = "";
   }
-  async answerCall(data: any) {
-    if (!data.offer) return;
 
-    try {
-      if (this.callInProgress) {
-        this.toastr.warning('Already in a call');
-        return;
-      }
+  // private listenForCalls() {
+  //   this.socketService.onIncomingCall().subscribe(async (data: any) => {
+  //     if (!data.offer) return;
 
-      this.callInProgress = true;
-      this.callType = data.callType;
-      this.myStream = await navigator.mediaDevices.getUserMedia(
-        this.callType === "video" ?
-          { video: true, audio: true } :
-          { audio: true, video: false }
-      );
+  //     if (confirm(`${data.from} is calling. Accept?`)) {
+  //       this.callInProgress = true;
 
-      if (this.callType === "video") {
-        this.setupVideoElements();
-      } else {
-        this.setupAudioElements();
-      }
+  //       try {
+  //         this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  //         this.setupVideoElements();
+  //         this.initializePeerConnection();
 
-      this.initializePeerConnection();
+  //         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+  //         const answer = await this.peerConnection.createAnswer();
+  //         await this.peerConnection.setLocalDescription(answer);
 
-      await this.peerConnection.setRemoteDescription(
-        new RTCSessionDescription(data.offer)
-      );
+  //         this.socketService.answerCall(data.from, answer);
+  //       } catch (error) {
+  //         console.error('Error answering call:', error);
+  //         this.callInProgress = false;
+  //       }
+  //     }
+  //   });
 
-      const answer = await this.peerConnection.createAnswer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
-      });
-      await this.peerConnection.setLocalDescription(answer);
+  //   this.socketService.onCallAccepted().subscribe(async (data: any) => {
+  //     try {
+  //       if (data.answer) {
+  //         await this.peerConnection.setRemoteDescription(data.answer);
+  //         const remoteStream = this.userVideo.nativeElement.srcObject;
+  //         if (remoteStream.getAudioTracks().length === 0) {
+  //           this.toastr.warning('Remote audio not detected');
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Answer handling error:', error);
+  //     }
+  //   });
 
-      this.socketService.answerCall(data.from, answer);
-    } catch (error) {
-      console.error('Error answering call:', error);
-      this.callInProgress = false;
-    }
-  }
+
+  //   this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
+  //     if (candidate && this.peerConnection) {
+  //       this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+  //     }
+  //   });
+  // }
 
   private listenForCalls() {
     this.socketService.onIncomingCall().subscribe(async (data: any) => {
       if (!data.offer) return;
       this.callType = data.callType;
+      const callType = data.callType === "video" ? "Video Call" : "Audio Call";
+      console.log('data', data);
 
-      if (confirm(`${data.from} is calling. Accept ${data.callType} call?`)) {
-        await this.answerCall(data);
+      if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
+        this.callInProgress = true;
+
+        try {
+          this.myStream = await navigator.mediaDevices.getUserMedia(
+            data.callType === "video" ? { video: true, audio: true } : { audio: true, video: false }
+          );
+
+          if (data.callType === "video" && this.callType === 'video') {
+            this.setupVideoElements();
+          } else {
+            this.setupAudioElements();
+          }
+
+          this.initializePeerConnection();
+          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await this.peerConnection.createAnswer();
+          await this.peerConnection.setLocalDescription(answer);
+
+          this.socketService.answerCall(data.from, answer);
+        } catch (error) {
+          console.error('Error answering call:', error);
+          this.callInProgress = false;
+        }
       }
     });
 
     this.socketService.onCallAccepted().subscribe(async (data: any) => {
       try {
-        if (!data.answer || !this.peerConnection) return;
-
-        if (this.peerConnection.signalingState === 'stable') {
-          console.warn('Already in stable state, ignoring answer');
-          return;
-        }
-
-        if (this.peerConnection.signalingState === 'have-local-offer') {
-          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-        } else {
-          console.warn(`Cannot set remote answer in state: ${this.peerConnection.signalingState}`);
+        if (data.answer && this.peerConnection) {
+          await this.peerConnection.setRemoteDescription(data.answer);
         }
       } catch (error) {
         console.error('Error handling answer:', error);
       }
     });
 
-    this.socketService.onIceCandidate().subscribe(async (candidate: RTCIceCandidate) => {
-      try {
-        if (!this.peerConnection) {
-          this.pendingCandidates.push(new RTCIceCandidate(candidate));
-          return;
-        }
-
-        if (!this.peerConnection.remoteDescription) {
-          this.pendingCandidates.push(new RTCIceCandidate(candidate));
-          return;
-        }
-
-        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (error) {
-        console.error('Error adding ICE candidate:', error);
+    this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
+      if (candidate && this.peerConnection) {
+        this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       }
     });
   }
+
+  // async callUser() {
+  //   this.callInProgress = true;
+
+  //   try {
+  //     this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+  //     console.log('Audio tracks:', this.myStream.getAudioTracks());
+  //     this.setupVideoElements();
+  //     this.initializePeerConnection();
+
+  //     const offer = await this.peerConnection.createOffer();
+  //     await this.peerConnection.setLocalDescription(offer);
+
+  //     this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id);
+  //   } catch (error) {
+  //     console.error('Error starting call:', error);
+  //     this.toastr.error('Failed to start call');
+  //     this.callInProgress = false;
+  //   }
+  // }
 
   async callAudioUser() {
     this.callInProgress = true;
@@ -395,26 +339,18 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   }
 
   async callVideoUser() {
+    this.callInProgress = true;
+    this.callType = 'video';
     try {
-      if (this.callInProgress) {
-        this.toastr.warning('Call already in progress');
-        return;
-      }
-      this.callInProgress = true;
-      this.callType = 'video';
       this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
       this.setupVideoElements();
       this.initializePeerConnection();
 
-      const offer = await this.peerConnection.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
-      });
+      const offer = await this.peerConnection.createOffer();
       await this.peerConnection.setLocalDescription(offer);
 
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
-
     } catch (error) {
       console.error('Error starting video call:', error);
       this.toastr.error('Failed to start video call');
@@ -426,7 +362,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     if (this.myStream) {
       const audioElement = new Audio();
       audioElement.srcObject = this.myStream;
-      audioElement.muted = true;
+      audioElement.muted = true; 
       audioElement.play();
     }
   }
@@ -435,14 +371,8 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   private setupVideoElements() {
     if (this.myVideo?.nativeElement) {
       this.myVideo.nativeElement.srcObject = this.myStream;
-      this.myVideo.nativeElement.muted = true;
-      this.myVideo.nativeElement.play().catch((error: any) => {
-        console.error("Error playing local video:", error);
-      });
-    }
-
-    if (this.userVideo?.nativeElement) {
-      this.userVideo.nativeElement.srcObject = null;
+      this.myVideo.nativeElement.muted = this.isMuted;
+      this.myVideo.nativeElement.play();
     }
   }
 
@@ -450,14 +380,24 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
       this.peerConnection.close();
-      this.peerConnection = null!;
     }
-
     this.peerConnection = new RTCPeerConnection(this.servers);
+    this.previousStreams.forEach(stream => {
+      stream.getTracks().forEach(track => track.stop());
+    });
+    this.previousStreams = [];
 
+    // this.myStream.getTracks().forEach(track => {
+    //   if (!this.peerConnection.getSenders().some(sender => sender.track === track)) {
+    //     this.peerConnection.addTrack(track, this.myStream);
+    //   }
+    // });
     this.myStream.getTracks().forEach(track => {
       this.peerConnection.addTrack(track, this.myStream);
     });
+  
+    this.previousStreams.push(this.myStream);
+
 
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
@@ -466,65 +406,56 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     };
 
     this.peerConnection.ontrack = (event) => {
-      console.log("Received track:", event.track.kind);
-
-      if (!this.userVideo?.nativeElement) {
-        console.error("userVideo element not found");
-        return;
+      if (event.track.kind === "video") {
+        if (!this.userVideo?.nativeElement.srcObject) {
+          this.userVideo.nativeElement.srcObject = new MediaStream();
+        }
+        const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
+        remoteStream.addTrack(event.track);
       }
 
-      if (!this.userVideo.nativeElement.srcObject) {
-        this.userVideo.nativeElement.srcObject = new MediaStream();
+      if (event.track.kind === "audio") {
+        const audioElement = this.userVideo?.nativeElement || new Audio();
+        if (!audioElement.srcObject) {
+          audioElement.srcObject = new MediaStream();
+        }
+        (audioElement.srcObject as MediaStream).addTrack(event.track);
+        audioElement.play();
       }
-
-      const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-      remoteStream.addTrack(event.track);
-      if (event.track.kind === 'video') {
-        this.userVideo.nativeElement.play()
-          .then(() => console.log('Remote video playing'))
-          .catch((e: any) => console.error('Remote video play failed:', e));
-      }
-      // Play the video
-      this.userVideo.nativeElement.play().catch((error: any) => {
-        console.error("Error playing video:", error);
-      });
     };
 
-    if (this.pendingCandidates.length > 0) {
-      this.pendingCandidates.forEach(async candidate => {
-        try {
-          await this.peerConnection.addIceCandidate(candidate);
-        } catch (error) {
-          console.error("Error adding pending ICE candidate:", error);
+
+  }
+
+  private debugPeerConnectionStats() {
+    setInterval(async () => {
+      if (!this.peerConnection) return;
+
+      const stats = await this.peerConnection.getStats();
+      stats.forEach(report => {
+        if (report.type === 'inbound-rtp') {
+          console.log('Inbound RTP:', report);
         }
       });
-      this.pendingCandidates = [];
-    }
+    }, 5000);
   }
 
   endCall() {
-    if (this.myStream) {
-      this.myStream.getTracks().forEach(track => track.stop());
-      this.myStream = null!;
-    }
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => {
-        if (sender.track) sender.track.stop();
+        if (sender.track) {
+          sender.track.stop();
+        }
       });
       this.peerConnection.close();
       this.peerConnection = null!;
     }
-
-    if (this.myVideo?.nativeElement) {
-      this.myVideo.nativeElement.srcObject = null;
+    if (this.myStream) {
+      this.myStream.getTracks().forEach(track => track.stop());
     }
-    if (this.userVideo?.nativeElement) {
-      this.userVideo.nativeElement.srcObject = null;
-    }
-
     this.callInProgress = false;
-    console.log('Call ended and cleaned up');
   }
+
 
   openPreview(url: string, type: string) {
     this.previewUrl = url;
@@ -539,7 +470,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   toggleMute() {
     this.isMuted = !this.isMuted;
     this.myStream.getAudioTracks().forEach(track => {
-      track.enabled = !this.isMuted;
+      track.enabled = !this.isMuted; // Only enable if not muted
     });
 
   }
@@ -547,170 +478,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     this.isVideoEnabled = !this.isVideoEnabled;
     this.myStream.getVideoTracks().forEach(track => { track.enabled = this.isVideoEnabled });
   }
-
-  private async initializeMediasoupDevice() {
-    try {
-      const rtpCapabilities = await this.socketService.getRouterRtpCapabilities();
-
-      this.mediasoupDevice = new mediasoupClient.Device();
-      await this.mediasoupDevice.load({ routerRtpCapabilities: rtpCapabilities });
-
-
-    } catch (error) {
-      console.error('Error initializing Mediasoup device:', error);
-    }
-  }
-
-  private async createTransports() {
-    try {
-      const sendTransport: any = await this.socketService.createTransport();
-      const recvTransport: any = await this.socketService.createTransport();
-      this.sendTransport = this.mediasoupDevice!.createSendTransport({
-        id: sendTransport.id,
-        iceParameters: sendTransport.iceParameters,
-        iceCandidates: sendTransport.iceCandidates,
-        dtlsParameters: sendTransport.dtlsParameters,
-      });
-
-      this.recvTransport = this.mediasoupDevice!.createRecvTransport({
-        id: recvTransport.id,
-        iceParameters: recvTransport.iceParameters,
-        iceCandidates: recvTransport.iceCandidates,
-        dtlsParameters: recvTransport.dtlsParameters,
-      });
-
-
-      console.log('Transports created:', { sendTransport, recvTransport });
-
-    } catch (error) {
-      console.error('Error creating transports:', error);
-    }
-  }
-
-  private async produceMedia(kind: 'audio' | 'video') {
-    try {
-      const track = this.myStream.getTracks().find(t => t.kind === kind);
-      if (!track) throw new Error(`No ${kind} track found`);
-
-      const producer = await this.sendTransport!.produce({
-        track,
-        encodings: [{ maxBitrate: 100000 }],
-        codecOptions: {
-          videoGoogleStartBitrate: 1000,
-        },
-      });
-
-      this.producers[kind] = producer;
-
-    } catch (error) {
-      console.error(`Error producing ${kind} media:`, error);
-    }
-  }
-
-  private async consumeMedia(producerId: string, kind: 'audio' | 'video') {
-    try {
-
-      const consumer = await this.recvTransport!.consume({
-        producerId,
-        rtpCapabilities: this.mediasoupDevice!.rtpCapabilities,
-      });
-
-      this.consumers[producerId] = consumer;
-
-      const stream = new MediaStream();
-      stream.addTrack(consumer.track);
-
-      if (kind === 'video') {
-        this.userVideo.nativeElement.srcObject = stream;
-      } else {
-        const audioElement = new Audio();
-        audioElement.srcObject = stream;
-        audioElement.play();
-      }
-
-      console.log(`${kind} consumer created:`, consumer);
-    } catch (error) {
-      console.error(`Error consuming ${kind} media:`, error);
-    }
-  }
-
-  async startGroupCall(callType: 'audio' | 'video') {
-    this.callInProgress = true;
-    this.callType = callType;
-
-    try {
-      this.myStream = await navigator.mediaDevices.getUserMedia(
-        callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
-      );
-
-      if (callType === 'video') {
-        this.setupVideoElements();
-      } else {
-        this.setupAudioElements();
-      }
-
-      await this.initializeMediasoupDevice();
-      await this.createTransports();
-      await this.produceMedia('audio');
-      if (callType === 'video') {
-        await this.produceMedia('video');
-      }
-
-      this.socketService.onNewParticipant().subscribe(async (participant: any) => {
-        if (participant.audioProducerId) {
-          await this.consumeMedia(participant.audioProducerId, 'audio');
-        }
-        if (participant.videoProducerId) {
-          await this.consumeMedia(participant.videoProducerId, 'video');
-        }
-      });
-
-      this.socketService.callUser(this.groupId, null, this.authService.getLoggedInUser()._id, callType);
-    } catch (error) {
-      console.error('Error starting group call:', error);
-      this.callInProgress = false;
-    }
-  }
-
-  async joinCall() {
-    this.callInProgress = true;
-
-    try {
-      this.myStream = await navigator.mediaDevices.getUserMedia(
-        this.callType === 'video' ? { video: true, audio: true } : { audio: true, video: false }
-      );
-
-      if (this.callType === 'video') {
-        this.setupVideoElements();
-      } else {
-        this.setupAudioElements();
-      }
-
-      await this.initializeMediasoupDevice();
-      await this.createTransports();
-      await this.produceMedia('audio');
-      if (this.callType === 'video') {
-        await this.produceMedia('video');
-      }
-
-      const participants = await this.socketService.getParticipants(this.groupId);
-      for (const participant of participants) {
-        if (participant.audioProducerId) {
-          await this.consumeMedia(participant.audioProducerId, 'audio');
-        }
-        if (participant.videoProducerId) {
-          await this.consumeMedia(participant.videoProducerId, 'video');
-        }
-      }
-
-      this.socketService.answerCall(this.groupId, null);
-    } catch (error) {
-      console.error('Error joining group call:', error);
-      this.callInProgress = false;
-    }
-  }
-
-
 
 
 
