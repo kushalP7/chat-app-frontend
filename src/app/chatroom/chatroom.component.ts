@@ -1,8 +1,13 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnInit, Output, Renderer2, SimpleChanges, ViewChild } from '@angular/core';
+
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnInit, Output, Renderer2, SimpleChanges, ViewChild } from '@angular/core';
 import { AuthService } from '../core/services/auth.service';
 import { SocketService } from '../core/services/socket.service';
 import { UserService } from '../core/services/user.service';
 import { ToastrService } from 'ngx-toastr';
+import * as mediasoupClient from 'mediasoup-client';
+import { Router } from '@angular/router';
+
+
 
 
 @Component({
@@ -13,20 +18,21 @@ import { ToastrService } from 'ngx-toastr';
 export class ChatroomComponent implements OnInit, AfterViewInit {
 
   @Input() conversationId!: string;
-  @Input() receiverId!: string;
-  @Input() receiverName!: string;
-  @ViewChild('chatWindow') private chatWindow!: ElementRef;
-  @Output() messageSent = new EventEmitter<{ conversationId: string, content: string, createdAt: string }>();
-  
   @Input() groupId  !: string;
   @Input() groupName!: string;
   @Input() groupMembers!: any[];
   @Input() activeSection!: string;
 
+  @Input() receiverId!: string;
+  @Input() receiverName!: string;
+  @ViewChild('chatWindow') private chatWindow!: ElementRef;
+  @Output() messageSent = new EventEmitter<{ conversationId: string, content: string, createdAt: string }>();
+
   receiverAvatar!: string;
+  groupAvatar!: string;
   message: string = '';
   fileName: string = '';
-  messageArray: Array<{ userId: string, content?: string, fileUrl?: string, type: string, createdAt: string }> = [];
+  messageArray: Array<{ userId: string, content?: string, fileUrl?: string, type: string, createdAt: string, senderName?: string }> = [];
   isTyping: boolean = false;
   isOnline: boolean = false;
   lastSeen: string | null = null;
@@ -35,7 +41,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   previewUrl: string | null = null;
   previewType: string | null = null;
   callType: 'audio' | 'video' = 'video';
-
+  isGroupChat: boolean = false;
 
   @ViewChild("myVideo") myVideo!: ElementRef;
   @ViewChild("userVideo") userVideo!: ElementRef;
@@ -44,19 +50,51 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   private peerConnection!: RTCPeerConnection;
   private servers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun.l.google.com:5349" },
+      { urls: "stun:stun1.l.google.com:3478" },
+      { urls: "stun:stun1.l.google.com:5349" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:5349" },
+      { urls: "stun:stun3.l.google.com:3478" },
+      { urls: "stun:stun3.l.google.com:5349" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:5349" },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal123",
+        username: "kushal123"
+      },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal124",
+        username: "kushal124"
+      }
     ]
   };
   callInProgress = false;
   isMuted: boolean = false;
   isVideoEnabled: boolean = true;
   private previousStreams: MediaStream[] = [];
+  private pendingCandidates: RTCIceCandidate[] = [];
+
+  private mediasoupDevice: mediasoupClient.Device | null = null;
+  private sendTransport: mediasoupClient.types.Transport | null = null;
+  private recvTransport: any | null = null;
+  private producers: { [key: string]: mediasoupClient.types.Producer } = {};
+  private consumers: { [key: string]: mediasoupClient.types.Consumer } = {};
+
 
   constructor(
     private socketService: SocketService,
     public authService: AuthService,
     public userService: UserService,
     private toastr: ToastrService,
+    private router: Router
+
 
   ) {
     this.socketService.newMessageReceived().subscribe(data => {
@@ -66,11 +104,30 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         this.messageArray.push(data);
       }
       this.isTyping = false;
-      this.messageSent.emit({ conversationId: this.conversationId, content: this.message, createdAt: data.createdAt });
-
+      this.messageSent.emit({ conversationId: this.conversationId, content: data.content, createdAt: data.createdAt });
       setTimeout(() => this.scrollToBottom(), 100);
+    });
+
+    this.socketService.newGroupMessageReceived().subscribe((data) => {
+      if (data.conversationId !== this.groupId) return;
+      if (!this.messageArray.some(msg => msg.createdAt === data.createdAt)) {
+        this.userService.getUserById(data.userId).subscribe({
+          next: (response) => {
+            console.log('response', response);
+            data.senderName = response.data.username;
+            this.messageArray.push(data);
+            this.isTyping = false;
+            this.messageSent.emit({ conversationId: this.groupId, content: data.content, createdAt: data.createdAt });
+            setTimeout(() => this.scrollToBottom(), 100);
+          },
+          error: (error) => {
+            console.log("Error fetching user:", error);
+          }
+        });
+      }
 
     });
+
 
     this.socketService.receivedTyping().subscribe(data => {
       if (data.userId !== this.authService.getLoggedInUser()._id) {
@@ -85,11 +142,10 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     }
   }
 
-  ngOnInit(): void {
+  ngOnInit() {
+    this.isGroupChat = !!this.groupId;
     this.loadMessages();
     this.listenForCalls();
-
-    this.debugPeerConnectionStats();
 
   }
 
@@ -98,69 +154,110 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     window.removeEventListener('beforeunload', this.endCall.bind(this));
   }
 
-
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['conversationId'] && !changes['conversationId'].firstChange) {
+    if ((changes['conversationId'] && !changes['conversationId'].firstChange) ||
+      (changes['groupId'] && !changes['groupId'].firstChange)) {
       this.loadMessages();
     }
 
-    this.userService.getUserById(this.receiverId).subscribe({
-      next: (response) => {
-        this.receiverName = response.data.username;
-        this.receiverAvatar = response.data.avatar;
-        this.isOnline = response.data.isOnline;
-        this.lastSeen = response.data.lastSeen;
-      },
-      error: (error) => {
-        console.log(error);
-      }
-    })
+    this.isGroupChat = !!this.groupId;
+    if (this.activeSection === 'groups') {
+      this.userService.getGroupInfo(this.groupId).subscribe({
+        next: (response) => {
+          this.groupName = response.data.groupName
+          this.groupMembers = response.data.membersDetails
+          this.groupAvatar = response.data.groupAvatar
+        },
+        error: (error) => {
+          console.log(error);
+        }
+      })
+    }
+    if (this.activeSection === 'oneToOne') {
+      this.userService.getUserById(this.receiverId).subscribe({
+        next: (response) => {
+          this.receiverName = response.data.username;
+          this.receiverAvatar = response.data.avatar;
+          this.isOnline = response.data.isOnline;
+          this.lastSeen = response.data.lastSeen;
+        },
+        error: (error) => {
+          console.log(error);
+        }
+      })
+    }
   }
 
-  private loadMessages(): void {
-    this.socketService.joinConversation(this.conversationId);
-    this.userService.getMessages(this.conversationId).subscribe(response => {
-      if (response.success) {
-        this.messageArray = response.data;
 
-        setTimeout(() => this.scrollToBottom(), 100);
-      }
-    });
+  private loadMessages(): void {
+    if (this.isGroupChat) {
+      this.socketService.joinGroup(this.conversationId);
+      this.userService.getMessages(this.groupId).subscribe(response => {
+        if (response.success) {
+          this.messageArray = response.data.map((message: any) => {
+            const sender = this.groupMembers.find(member => member._id === message.userId);
+            if (sender) {
+              message.senderName = sender.username;
+            }
+            return message;
+          });
+          setTimeout(() => this.scrollToBottom(), 100);
+        }
+      });
+    } else {
+      this.socketService.joinConversation(this.conversationId);
+      this.userService.getMessages(this.conversationId).subscribe(response => {
+        if (response.success) {
+          this.messageArray = response.data;
+          setTimeout(() => this.scrollToBottom(), 100);
+        }
+      });
+    }
   }
 
   sendMessage() {
     const userId = this.authService.getLoggedInUser()._id;
+    const messageData: any = {
+      user: userId,
+      conversationId: this.conversationId,
+      content: this.message,
+      createdAt: new Date().toISOString()
+    };
     if (this.file) {
       this.socketService.uploadFile(this.file).subscribe(response => {
-        const messageData = {
-          user: userId,
-          conversationId: this.conversationId,
-          content: this.message,
-          fileUrl: response.fileUrl,
-          type: this.file?.type.startsWith("image") ? "image" : this.file?.type.startsWith("video") ? "video" : "audio",
-          createdAt: new Date().toISOString()
-        };
-
-        this.socketService.sendMessage(messageData);
-
+        messageData.fileUrl = response.fileUrl;
+        if (this.file?.type.startsWith("image")) {
+          messageData.type = "image";
+        } else if (this.file?.type.startsWith("video")) {
+          messageData.type = "video";
+        } else if (this.file?.type.startsWith("audio")) {
+          messageData.type = "audio";
+        } else if (this.file?.type === "application/pdf") {
+          messageData.type = "pdf";
+        } else {
+          messageData.type = "unknown";
+        }
+        if (this.isGroupChat) {
+          messageData.conversationId = this.groupId;
+          this.socketService.sendGroupMessage(messageData);
+        } else {
+          this.socketService.sendMessage(messageData);
+        }
         this.file = null;
         this.fileName = "";
         this.message = "";
         setTimeout(() => this.scrollToBottom(), 100);
       });
     } else {
-      const messageData = {
-        user: userId,
-        conversationId: this.conversationId,
-        content: this.message,
-        type: "text",
-        createdAt: new Date().toISOString()
-      };
-
-      this.socketService.sendMessage(messageData);
-
-      this.message = "";
+      messageData.type = "text";
+      if (this.isGroupChat) {
+        messageData.conversationId = this.groupId;
+        this.socketService.sendGroupMessage(messageData);
+      } else {
+        this.socketService.sendMessage(messageData);
+      }
       setTimeout(() => this.scrollToBottom(), 100);
+      this.message = "";
     }
 
   }
@@ -189,59 +286,13 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         this.chatWindow.nativeElement.scrollTop = this.chatWindow.nativeElement.scrollHeight;
       }, 50);
     } catch (error: any) {
-      this.toastr.error(error.message, '', { timeOut: 2000 });
+      this.toastr.error(error.error.message, '', { timeOut: 2000 });
     }
   }
 
   removeSelectedImage() {
     this.fileName = "";
   }
-
-  // private listenForCalls() {
-  //   this.socketService.onIncomingCall().subscribe(async (data: any) => {
-  //     if (!data.offer) return;
-
-  //     if (confirm(`${data.from} is calling. Accept?`)) {
-  //       this.callInProgress = true;
-
-  //       try {
-  //         this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  //         this.setupVideoElements();
-  //         this.initializePeerConnection();
-
-  //         await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-  //         const answer = await this.peerConnection.createAnswer();
-  //         await this.peerConnection.setLocalDescription(answer);
-
-  //         this.socketService.answerCall(data.from, answer);
-  //       } catch (error) {
-  //         console.error('Error answering call:', error);
-  //         this.callInProgress = false;
-  //       }
-  //     }
-  //   });
-
-  //   this.socketService.onCallAccepted().subscribe(async (data: any) => {
-  //     try {
-  //       if (data.answer) {
-  //         await this.peerConnection.setRemoteDescription(data.answer);
-  //         const remoteStream = this.userVideo.nativeElement.srcObject;
-  //         if (remoteStream.getAudioTracks().length === 0) {
-  //           this.toastr.warning('Remote audio not detected');
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error('Answer handling error:', error);
-  //     }
-  //   });
-
-
-  //   this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
-  //     if (candidate && this.peerConnection) {
-  //       this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-  //     }
-  //   });
-  // }
 
   private listenForCalls() {
     this.socketService.onIncomingCall().subscribe(async (data: any) => {
@@ -293,28 +344,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       }
     });
   }
-
-  // async callUser() {
-  //   this.callInProgress = true;
-
-  //   try {
-  //     this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-  //     console.log('Audio tracks:', this.myStream.getAudioTracks());
-  //     this.setupVideoElements();
-  //     this.initializePeerConnection();
-
-  //     const offer = await this.peerConnection.createOffer();
-  //     await this.peerConnection.setLocalDescription(offer);
-
-  //     this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id);
-  //   } catch (error) {
-  //     console.error('Error starting call:', error);
-  //     this.toastr.error('Failed to start call');
-  //     this.callInProgress = false;
-  //   }
-  // }
-
   async callAudioUser() {
     this.callInProgress = true;
 
@@ -357,21 +386,19 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       this.callInProgress = false;
     }
   }
-
   private setupAudioElements() {
     if (this.myStream) {
       const audioElement = new Audio();
       audioElement.srcObject = this.myStream;
-      audioElement.muted = true; 
+      audioElement.muted = true;
       audioElement.play();
     }
   }
 
-
   private setupVideoElements() {
     if (this.myVideo?.nativeElement) {
       this.myVideo.nativeElement.srcObject = this.myStream;
-      this.myVideo.nativeElement.muted = this.isMuted;
+      this.myVideo.nativeElement.muted = true;
       this.myVideo.nativeElement.play();
     }
   }
@@ -386,16 +413,9 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
       stream.getTracks().forEach(track => track.stop());
     });
     this.previousStreams = [];
-
-    // this.myStream.getTracks().forEach(track => {
-    //   if (!this.peerConnection.getSenders().some(sender => sender.track === track)) {
-    //     this.peerConnection.addTrack(track, this.myStream);
-    //   }
-    // });
     this.myStream.getTracks().forEach(track => {
       this.peerConnection.addTrack(track, this.myStream);
     });
-  
     this.previousStreams.push(this.myStream);
 
 
@@ -423,39 +443,30 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
         audioElement.play();
       }
     };
-
-
-  }
-
-  private debugPeerConnectionStats() {
-    setInterval(async () => {
-      if (!this.peerConnection) return;
-
-      const stats = await this.peerConnection.getStats();
-      stats.forEach(report => {
-        if (report.type === 'inbound-rtp') {
-          console.log('Inbound RTP:', report);
-        }
-      });
-    }, 5000);
   }
 
   endCall() {
+    if (this.myStream) {
+      this.myStream.getTracks().forEach(track => track.stop());
+      this.myStream = null!;
+    }
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => {
-        if (sender.track) {
-          sender.track.stop();
-        }
+        if (sender.track) sender.track.stop();
       });
       this.peerConnection.close();
       this.peerConnection = null!;
     }
-    if (this.myStream) {
-      this.myStream.getTracks().forEach(track => track.stop());
+
+    if (this.myVideo?.nativeElement) {
+      this.myVideo.nativeElement.srcObject = null;
     }
+    if (this.userVideo?.nativeElement) {
+      this.userVideo.nativeElement.srcObject = null;
+    }
+
     this.callInProgress = false;
   }
-
 
   openPreview(url: string, type: string) {
     this.previewUrl = url;
@@ -470,7 +481,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   toggleMute() {
     this.isMuted = !this.isMuted;
     this.myStream.getAudioTracks().forEach(track => {
-      track.enabled = !this.isMuted; // Only enable if not muted
+      track.enabled = !this.isMuted;
     });
 
   }
@@ -479,6 +490,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
     this.myStream.getVideoTracks().forEach(track => { track.enabled = this.isVideoEnabled });
   }
 
+  async startGroupCall(callType: 'audio' | 'video') { }
 
-
+  async joinCall() { }
 }

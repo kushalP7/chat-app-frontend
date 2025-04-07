@@ -37,6 +37,12 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   showGroupForm = false;
   selectedMembers: string[] = [];
   selectedFile: File | null = null;
+  isMobileView = false;
+  isSidebarOpen = false;
+  activeGroupCall: any = null;
+  groupCallParticipants: any[] = [];
+
+
 
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
   @ViewChild("myVideo") myVideo!: ElementRef;
@@ -48,15 +54,44 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   private peerConnection!: RTCPeerConnection;
   private servers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun.l.google.com:5349" },
+      { urls: "stun:stun1.l.google.com:3478" },
+      { urls: "stun:stun1.l.google.com:5349" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:5349" },
+      { urls: "stun:stun3.l.google.com:3478" },
+      { urls: "stun:stun3.l.google.com:5349" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:5349" },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal123",
+        username: "kushal123"
+      },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal124",
+        username: "kushal124"
+      }
     ]
   };
   callInProgress = false;
   isMuted: boolean = false;
   private previousStreams: MediaStream[] = [];
   isVideoEnabled: boolean = true;
-  isUserVideoEnabled: boolean = true;
-  showEmojiPicker = false;
+
+
+  private recorder!: MediaRecorder;
+  private recordedChunks: Blob[] = [];
+  recordedVideoUrl: string | null = null;
+
+  private combinedStream!: MediaStream;
+  isScreenSharing = false;
+  private screenStream: MediaStream | null = null;
 
 
   constructor(
@@ -75,6 +110,11 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       groupDescription: [''],
       groupAvatar: null,
     });
+
+    this.formData = this.formBuilder.group({
+      message: ['', Validators.required]
+    });
+
     this.socketService.newMessageReceived().subscribe(data => {
       if (data.conversationId !== this.conversationId) return;
 
@@ -104,28 +144,99 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.formData = this.formBuilder.group({
-      message: ['', Validators.required]
-    });
-
+    this.checkScreenSize();
+    if (!this.callInProgress) {
+      this.setupCallNotifications();
+    }
     this.loadChatConversations();
     this.loadGroupConversations();
     this.loadUsers();
-    this.listenForCalls();
+    // this.listenForCalls();
     this.socketService.newMessageReceived().subscribe(message => {
       this.handleNewMessage(message);
     });
     this.socketService.messagesMarkedRead().subscribe(data => {
       this.handleMessagesMarkedRead(data);
     });
-    // this.debugPeerConnectionStats();
+    document.addEventListener('paste', (event: ClipboardEvent) => this.handleClipboardFiles(event));
+    window.addEventListener('resize', this.checkScreenSize.bind(this));
 
+    this.socketService.onGroupCallStarted().subscribe((data: any) => {
+      if (data.groupId === this.conversationId) {
+        this.activeGroupCall = data;
+        this.groupCallParticipants = data.participants || [];
+      }
+    });
 
+    this.socketService.onGroupCallEnded().subscribe((groupId: string) => {
+      if (groupId === this.conversationId) {
+        this.activeGroupCall = null;
+        this.groupCallParticipants = [];
+      }
+    });
+
+    this.socketService.onGroupCallParticipantJoined().subscribe((data: any) => {
+      if (data.groupId === this.conversationId) {
+        this.groupCallParticipants.push(data.userId);
+      }
+    });
+
+    this.socketService.onGroupCallParticipantLeft().subscribe((data: any) => {
+      if (data.groupId === this.conversationId) {
+        this.groupCallParticipants = this.groupCallParticipants.filter(
+          id => id !== data.userId
+        );
+      }
+    });
+  }
+
+  checkScreenSize() {
+    this.isMobileView = window.innerWidth <= 768;
+    if (!this.isMobileView) {
+      this.isSidebarOpen = true;
+    }
   }
 
   ngOnDestroy() {
     this.endCall();
     window.removeEventListener('beforeunload', this.endCall.bind(this));
+  }
+
+  ngAfterViewInit() {
+    if (this.chatWindow)
+      this.scrollToBottom();
+  }
+
+
+  private setupCallNotifications() {
+    this.socketService.onIncomingCall().subscribe(async (data: any) => {
+      if (!data.offer) return;
+      console.log('callInProgress', this.callInProgress);
+
+      if (this.callInProgress) {
+        console.log("Call already in progress, ignoring duplicate request.");
+        return;
+      }
+      if (data.from === this.authService.getLoggedInUser()._id) return;
+
+      this.callType = data.callType;
+      const accept = confirm(`${data.from} is calling. Accept ${data.callType} Call?`);
+      if (accept) {
+        this.callInProgress = true;
+        this.router.navigate(['/video-call', data.from, data.callType]);
+      } else {
+        console.log('Call not accepted ');
+      }
+    });
+  }
+
+
+  startVideoCall(receiverId: string) {
+    this.router.navigate(['/video-call', receiverId, 'video']);
+  }
+
+  startAudioCall(receiverId: string) {
+    this.router.navigate(['/video-call', receiverId, 'audio']);
   }
 
 
@@ -147,13 +258,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
   }
 
-  ngAfterViewInit() {
-    if (this.chatWindow) {
-      this.scrollToBottom();
-    } else {
-      console.error('chatWindow is not initialized');
-    }
-  }
 
 
   loadChatConversations() {
@@ -178,6 +282,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       }
     });
   }
+
   chatUsername(name: string, avatar: any, status: boolean, conversationId: string, receiverId: string) {
 
     this.isGroupChat = false;
@@ -195,6 +300,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       this.loadMessages(this.conversationId);
       this.socketService.markMessagesAsRead(conversationId);
     }
+    this.isSidebarOpen = !this.isSidebarOpen;
 
   }
   startNewChat(userId: string, username: string, avatar: string) {
@@ -224,6 +330,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.groupMembers = group.members;
     this.loadMessages(this.conversationId);
     this.socketService.markMessagesAsRead(this.conversationId);
+    this.isSidebarOpen = !this.isSidebarOpen;
 
   }
 
@@ -303,6 +410,20 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     reader.readAsDataURL(this.file!);
   }
 
+  handleClipboardFiles(event: ClipboardEvent) {
+    const clipboardItems: any = event.clipboardData?.items;
+    for (let i = 0; i < clipboardItems?.length!; i++) {
+      const item = clipboardItems[i];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        if (file) {
+          this.file = file;
+          this.fileName = URL.createObjectURL(file);
+          this.toastr.info('File copied from clipboard!');
+        }
+      }
+    }
+  }
 
   private loadMessages(conversationId: string): void {
     if (this.isGroupChat) {
@@ -330,12 +451,14 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       });
     }
   }
+
   toggleGroupForm() {
     this.showGroupForm = !this.showGroupForm;
     if (this.showGroupForm) {
       this.loadAllUsers();
     }
   }
+
   loadAllUsers() {
     this.userService.getAllUsersExceptCurrentUser().subscribe({
       next: response => {
@@ -365,7 +488,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
   createGroup() {
     if (this.groupForm.invalid || this.selectedMembers.length < 2) {
-      alert('Please provide a valid group name, description, and select at least 2 members.');
+      this.toastr.error('Please provide a valid group name, description, and select at least 2 members.');
       return;
     }
 
@@ -486,6 +609,55 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
     this.cdr.detectChanges();
   }
+  onCopyMessage(msg: any) {
+    if (msg.type === 'image') {
+      fetch(msg.fileUrl)
+        .then((res) => res.blob())
+        .then((blob) => {
+          if (blob.type === 'image/jpeg') {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            img.onload = () => {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx?.drawImage(img, 0, 0);
+
+              canvas.toBlob((pngBlob) => {
+                if (pngBlob) {
+                  const item = new ClipboardItem({ 'image/png': pngBlob });
+                  navigator.clipboard.write([item]).then(() => {
+                    this.toastr.info('Image copied to clipboard!', '', { timeOut: 500 });
+                  }).catch((err) => {
+                    console.error('Failed to copy image to clipboard: ', err);
+                  });
+                }
+              }, 'image/png');
+            };
+
+            img.src = URL.createObjectURL(blob);
+          } else {
+            const item = new ClipboardItem({ 'image/png': blob });
+            navigator.clipboard.write([item]).then(() => {
+              this.toastr.info('Image copied to clipboard!', '', { timeOut: 500 });
+            }).catch((err) => {
+              console.error('Failed to copy image to clipboard: ', err);
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('Error fetching the image: ', err);
+        });
+    } else {
+      const messageContent = msg.content;
+      navigator.clipboard.writeText(messageContent).then(() => {
+        this.toastr.info('Message copied!', '', { timeOut: 500 });
+      }).catch((err) => {
+        console.error('Failed to copy message: ', err);
+      });
+    }
+  }
 
 
   async callAudioUser() {
@@ -494,11 +666,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     try {
       this.callType = 'audio';
       this.myStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        },
+        audio: true,
         video: false
       });
       this.setupAudioElements();
@@ -519,16 +687,13 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.callInProgress = true;
     this.callType = 'video';
     try {
-      this.myStream = await navigator.mediaDevices.getUserMedia({
-        video: true, audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        }
-      });
+      this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
       this.setupVideoElements();
       this.initializePeerConnection();
+
+      // this.startRecording(this.myStream, 'myVideo');
+      this.startRecording();
 
       const offer = await this.peerConnection.createOffer();
       await this.peerConnection.setLocalDescription(offer);
@@ -541,18 +706,115 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     }
   }
 
+  private startRecording() {
+    const recorder = new MediaRecorder(this.combinedStream);
+    const chunks: Blob[] = [];
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      this.recordedVideoUrl = url;
+      this.recordedChunks = chunks;
+    };
+
+    recorder.start();
+    this.recorder = recorder;
+  }
+
+  stopRecording() {
+    if (this.recorder) {
+      this.recorder.stop();
+    }
+  }
+
+  async toggleScreenShare() {
+    if (this.isScreenSharing) {
+      await this.stopScreenShare();
+    } else {
+      await this.startScreenShare();
+    }
+  }
+
+  async startScreenShare() {
+    try {
+      this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true
+      });
+
+      const videoSender = this.peerConnection.getSenders().find(
+        s => s.track?.kind === 'video'
+      );
+
+      if (videoSender) {
+        const screenTrack = this.screenStream.getVideoTracks()[0];
+        await videoSender.replaceTrack(screenTrack);
+
+        if (this.myVideo?.nativeElement) {
+          this.myVideo.nativeElement.srcObject = this.screenStream;
+        }
+
+        this.isScreenSharing = true;
+
+        screenTrack.onended = () => {
+          this.stopScreenShare();
+        };
+      }
+    } catch (error) {
+      console.error('Error starting screen share:', error);
+      this.toastr.error('Failed to start screen sharing');
+    }
+  }
+
+  async stopScreenShare() {
+    if (!this.isScreenSharing) return;
+
+    try {
+      this.screenStream?.getTracks().forEach(track => track.stop());
+
+      const videoSender = this.peerConnection.getSenders().find(
+        s => s.track?.kind === 'video'
+      );
+
+      if (videoSender && this.myStream) {
+        const cameraTrack = this.myStream.getVideoTracks()[0];
+        if (cameraTrack) {
+          await videoSender.replaceTrack(cameraTrack);
+        }
+
+        if (this.myVideo?.nativeElement) {
+          this.myVideo.nativeElement.srcObject = this.myStream;
+        }
+      }
+
+      this.isScreenSharing = false;
+      this.screenStream = null;
+    } catch (error) {
+      console.error('Error stopping screen share:', error);
+    }
+  }
+
+
+
   private setupAudioElements() {
     if (this.myStream) {
       const audioElement = new Audio();
       audioElement.srcObject = this.myStream;
-      audioElement.muted = this.isMuted;
+      audioElement.muted = true;
       audioElement.play();
     }
   }
+
   private setupVideoElements() {
     if (this.myVideo?.nativeElement) {
       this.myVideo.nativeElement.srcObject = this.myStream;
-      this.myVideo.nativeElement.muted = this.isMuted;
+      this.myVideo.nativeElement.muted = true;
       this.myVideo.nativeElement.play();
     }
   }
@@ -566,10 +828,9 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
       if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
         this.callInProgress = true;
-
         try {
           this.myStream = await navigator.mediaDevices.getUserMedia(
-            data.myStreamcallType === "video" ? { video: true, audio: true } : { audio: true, video: false }
+            data.callType === "video" ? { video: true, audio: true } : { audio: true, video: false }
           );
 
           if (data.callType === "video" && this.callType === 'video') {
@@ -590,8 +851,23 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         }
       }
     });
-  }
 
+    this.socketService.onCallAccepted().subscribe(async (data: any) => {
+      try {
+        if (data.answer && this.peerConnection) {
+          await this.peerConnection.setRemoteDescription(data.answer);
+        }
+      } catch (error) {
+        console.error('Error handling answer:', error);
+      }
+    });
+
+    this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
+      if (candidate && this.peerConnection) {
+        this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      }
+    });
+  }
 
   private initializePeerConnection() {
     if (this.peerConnection) {
@@ -609,7 +885,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
 
     this.previousStreams.push(this.myStream);
-
 
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
@@ -637,10 +912,12 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     };
   }
 
+
   toggleVideo() {
     this.isVideoEnabled = !this.isVideoEnabled;
     this.myStream.getVideoTracks().forEach(track => { track.enabled = this.isVideoEnabled });
   }
+
   // async toggleVideo() {
   //   this.isVideoEnabled = !this.isVideoEnabled;
 
@@ -678,36 +955,55 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   endCall() {
+    if (this.isScreenSharing) {
+      this.stopScreenShare();
+    }
+    if (this.myStream) {
+      this.myStream.getTracks().forEach(track => track.stop());
+      this.myStream = null!;
+    }
     if (this.peerConnection) {
       this.peerConnection.getSenders().forEach(sender => {
-        if (sender.track) {
-          sender.track.stop();
-        }
+        if (sender.track) sender.track.stop();
       });
       this.peerConnection.close();
       this.peerConnection = null!;
     }
-    if (this.myStream) {
-      this.myStream.getTracks().forEach(track => track.stop());
+
+    if (this.myVideo?.nativeElement) {
+      this.myVideo.nativeElement.srcObject = null;
+    }
+    if (this.userVideo?.nativeElement) {
+      this.userVideo.nativeElement.srcObject = null;
     }
     this.callInProgress = false;
   }
 
-  // private debugPeerConnectionStats() {
-  //   setInterval(async () => {
-  //     if (!this.peerConnection) return;
-
-  //     const stats = await this.peerConnection.getStats();
-  //     stats.forEach(data => {
-  //       if (data.type === 'inbound-rtp') {
-  //         console.log('inbound-rtp:', data);
-  //       }
-  //     });
-  //   }, 5000);
-  // }
-
   navigateToChat() {
     this.router.navigate(['/test']);
+  }
+
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+    console.log(this.isSidebarOpen);
+
+  }
+  startGroupAudioCall(groupId: string) {
+    this.router.navigate(['/group-call', groupId], {
+      queryParams: { initiator: 'true', callType: 'audio' }
+    });
+  }
+
+  startGroupVideoCall(groupId: string) {
+    this.router.navigate(['/group-call', groupId], {
+      queryParams: { initiator: 'true', callType: 'video' }
+    });
+  }
+
+  joinGroupCall(groupId: string) {
+    if (this.activeGroupCall) {
+      this.router.navigate(['/group-call', groupId]);
+    }
   }
 
 }

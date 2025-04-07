@@ -14,6 +14,8 @@ import { environment } from 'src/environments/environment';
 import { ChatNewComponent } from './chat-new/chat-new.component';
 import { SimplebarAngularModule } from 'simplebar-angular';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { VideoCallComponent } from './video-call/video-call.component';
+import { GroupCallComponent } from './group-call/group-call.component';
 
 const socketConfig = {
   url: environment.apiUrl,
@@ -30,6 +32,8 @@ const socketConfig = {
     ChatComponent,
     ChatroomComponent,
     ChatNewComponent,
+    VideoCallComponent,
+    GroupCallComponent,
   ],
   imports: [
     ToastrModule.forRoot(),

@@ -1,0 +1,26 @@
+<div class="group-call-container">
+    <div class="local-video-container">
+      <video #localVideo autoplay playsinline muted></video>
+      <div class="call-controls">
+        <button (click)="toggleMute()" [class.active]="isMuted">
+          <i class="fa-solid" [class.fa-microphone]="!isMuted" [class.fa-microphone-slash]="isMuted"></i>
+        </button>
+        <button (click)="toggleVideo()" [class.active]="!isVideoEnabled">
+          <i class="fa-solid" [class.fa-video]="isVideoEnabled" [class.fa-video-slash]="!isVideoEnabled"></i>
+        </button>
+        <button (click)="toggleScreenShare()" [class.active]="isScreenSharing">
+          <i class="fa-solid fa-display"></i>
+        </button>
+        <button (click)="leaveCall()" class="end-call">
+          <i class="fa-solid fa-phone-slash"></i>
+        </button>
+      </div>
+    </div>
+  
+    <div #remoteVideos class="remote-videos-container">
+      <div *ngFor="let participant of participants" class="remote-video-item">
+        <video autoplay playsinline [srcObject]="participant.stream"></video>
+        <div class="participant-name">{{ participant.userId }}</div>
+      </div>
+    </div>
+  </div>

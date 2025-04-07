@@ -1,9 +1,8 @@
 <div class="d-lg-flex mb-4 main chat-container">
-    <div class="chat-leftsidebar card">
+    <div class="chat-leftsidebar card" [class.show]="isSidebarOpen">
         <div class="p-4 pb-0 bg-soft-primary chat-leftsidebar-header rounded-top">
             <div class="d-flex align-items-start">
                 <div class="flex-grow-1">
-                    <!-- <img src="assets/logo-sm.png" class="avatar-sm h-auto" alt="Logo"> -->
                     <div class="dropdown" ngbDropdown placement="bottom-left">
                         <button class="btn dropdown-toggle py-0 shadow-none no-arrow" type="button"
                             data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ngbDropdownToggle>
@@ -54,8 +53,7 @@
                     class="nav nav-tabs nav-tabs-custom border-bottom-0 nav-justified">
 
                     <li [ngbNavItem]="1" class="nav-item">
-                        <a ngbNavLink data-bs-toggle="tab" aria-expanded="true"
-                            class="nav-link">
+                        <a ngbNavLink data-bs-toggle="tab" aria-expanded="true" class="nav-link">
                             <i class="bx bx-chat font-size-20 d-sm-none"></i>
                             <span class="d-sm-block" (click)="loadChatConversations()">Chat</span>
                         </a>
@@ -130,9 +128,6 @@
                                             <div class="d-flex">
                                                 <h5 class="font-size-14">Groups</h5>
                                                 <div class="ms-auto">
-                                                    <!-- <a href="javascript:void(0);">
-                                                        <i class="fa-solid fa-plus"></i> Add New
-                                                    </a> -->
                                                     <button class="btn btn-outline-primary" type="button"
                                                         data-bs-toggle="modal" data-bs-target="#groupModal">
                                                         <i class="fa-solid fa-plus"></i> Add New
@@ -246,11 +241,13 @@
 
 
     <div class="w-100 user-chat mt-4 mt-sm-0 ms-lg-1">
-        <div class="card ">
+        <div class="card" *ngIf="receiverId || conversationId">
             <div class="p-3 border-bottom">
                 <div class="row">
                     <div class="col-xl-4 col-4">
                         <div class="d-flex align-items-center">
+                            <i class="fa-solid fa-bars back-button me-2" (click)="toggleSidebar()"
+                                *ngIf="isMobileView"></i>
                             <div *ngIf="!isGroupChat && userProfile " class="flex-shrink-0  me-3">
                                 <img :src="{{userProfile}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
                             </div>
@@ -305,15 +302,36 @@
 
                             <li class="list-inline-item">
                                 <button *ngIf="!isGroupChat && userProfile" class="btn nav-btn"
-                                    (click)="callAudioUser()">
+                                    (click)="startAudioCall(this.receiverId)">
                                     <i class="fa-solid fa-phone"></i>
                                 </button>
                             </li>
 
                             <li class="list-inline-item">
                                 <button *ngIf="!isGroupChat && userProfile" class="btn nav-btn"
-                                    (click)="callVideoUser()">
+                                    (click)="startVideoCall(this.receiverId)">
                                     <i class="fa-solid fa-video"></i>
+                                </button>
+                            </li>
+
+                            <li class="list-inline-item">
+                                <button *ngIf="isGroupChat" class="btn nav-btn"
+                                    (click)="startGroupAudioCall(conversationId)">
+                                    <i class="fa-solid fa-phone"></i>
+                                </button>
+                            </li>
+                    
+                            <li class="list-inline-item">
+                                <button *ngIf="isGroupChat" class="btn nav-btn"
+                                    (click)="startGroupVideoCall(conversationId)">
+                                    <i class="fa-solid fa-video"></i>
+                                </button>
+                            </li>
+                    
+                            <li class="list-inline-item">
+                                <button *ngIf="isGroupChat && activeGroupCall" class="btn nav-btn btn-success"
+                                    (click)="joinGroupCall(conversationId)">
+                                    <i class="fa-solid fa-phone-volume"></i> Join Call
                                 </button>
                             </li>
 
@@ -339,6 +357,12 @@
 
 
             <div class="chat-window">
+                <div *ngIf="recordedVideoUrl">
+                    <h3>Recorded Video</h3>
+                    <video [src]="recordedVideoUrl" controls></video>
+                    <a [href]="recordedVideoUrl" download="combined-video.mp4">Download Combined Video</a>
+                </div>
+
                 <div class="call-container">
                     <div *ngIf="callInProgress && callType==='video'"
                         class="video-call-container position-relative text-center bg-dark p-3 rounded">
@@ -364,11 +388,20 @@
                                     [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
                             </button>
 
+                            <button class="btn btn-info btn-sm" (click)="toggleScreenShare()">
+                                <i class="fa-solid"
+                                    [ngClass]="{'fa-display': !isScreenSharing, 'fa-times-circle': isScreenSharing}"></i>
+                            </button>
                             <button class="btn btn-danger btn-sm" (click)="endCall()">
                                 <i class="fa-solid fa-phone-slash"></i>
                             </button>
+
+
                         </div>
+
                     </div>
+
+
 
                     <div *ngIf="callType==='audio' && callInProgress"
                         class="audio-call-container position-relative text-center bg-dark p-3 rounded">
@@ -432,7 +465,7 @@
                                             </audio>
                                             <div *ngIf="msg.type === 'pdf'"
                                                 class="chat-media chat-pdf d-flex align-items-center"
-                                                (click)="openPreview(msg.fileUrl!, 'pdf')">
+                                                (click)="openPreview(msg.fileUrl!, 'application/pdf')">
                                                 <i class="fa-solid fa-file-pdf fa-3x text-danger me-2"></i>
                                                 <span class="text-primary">{{ msg.fileUrl?.split('/')?.pop() }}</span>
                                             </div>
@@ -444,7 +477,7 @@
                                                 <i class="fa-solid fa-ellipsis-vertical"></i>
                                             </a>
                                             <div class="dropdown-menu" ngbDropdownMenu>
-                                                <a class="dropdown-item" href="javascript:void(0);">Copy</a>
+                                                <a class="dropdown-item" (click)="onCopyMessage(msg)">Copy</a>
                                                 <a class="dropdown-item" href="javascript:void(0);">Save</a>
                                                 <a class="dropdown-item" href="javascript:void(0);">Forward</a>
                                                 <a class="dropdown-item" href="javascript:void(0);">Delete</a>
@@ -471,11 +504,11 @@
                 class="chat-input-section input-container d-flex p-3 border-top bg-white align-items-center">
                 <div *ngIf="fileName" class="selected-image-container me-2 position-relative">
                     <img *ngIf="file?.type!.startsWith('image')" [src]="fileName" class="selected-image">
-                    <i class="fa-solid fa-file-pdf text-danger fa-2x" *ngIf="file?.type === 'application/pdf'"></i>
-                    <video *ngIf="file?.type!.startsWith('video')" class="selected-video" controls>
+                    <i class="fa-solid fa-file-pdf text-danger fa-2x" *ngIf="file?.type === 'pdf'"></i>
+                    <video *ngIf="file?.type!.startsWith('video')" class="selected-image" controls>
                         <source [src]="fileName" type="video/mp4">
                     </video>
-                    <audio *ngIf="file?.type!.startsWith('audio')" class="selected-audio" controls>
+                    <audio *ngIf="file?.type!.startsWith('audio')" class="selected-image" controls>
                         <source [src]="fileName" type="audio/mp3">
                     </audio>
                     <i class="fa-solid fa-times-circle remove-image-icon" (click)="removeSelectedImage()"></i>
@@ -499,6 +532,15 @@
             </form>
 
 
+        </div>
+
+        <div class="col-md-9 chat-main p-0" *ngIf="!receiverId && !conversationId">
+            <i class="fa-solid fa-bars back-button me-2" (click)="toggleSidebar()" *ngIf="isMobileView"></i>
+            <div class="welcome-message">
+                <img src="../../assets/welcome.png" alt="Welcome to Chat" class="welcome-image img-fluid">
+                <h2 class="welcome-heading">Welcome to Chat!</h2>
+                <p class="welcome-text">Select a chat from the left to start a conversation.</p>
+            </div>
         </div>
     </div>
 </div>

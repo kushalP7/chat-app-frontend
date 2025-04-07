@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
 import * as mediasoupClient from 'mediasoup-client';
-
+import { Router } from '@angular/router';
 @Injectable({
   providedIn: 'root'
 })
@@ -19,10 +19,12 @@ export class SocketService {
     private socket: Socket,
     private http: HttpClient,
     private authService: AuthService,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private router: Router
+
   ) {
     this.autoReconnect();
-    
+
   }
 
   connectWithToken() {
@@ -109,6 +111,7 @@ export class SocketService {
     return this.socket.fromEvent("callAccepted");
   }
 
+
   sendIceCandidate(userToCall: string, candidate: any) {
     this.socket.emit("iceCandidate", { userToCall, candidate });
   }
@@ -116,7 +119,6 @@ export class SocketService {
   onIceCandidate() {
     return this.socket.fromEvent("iceCandidate");
   }
-
   joinGroup(conversationId: string): void {
     this.socket.emit('joinConversation', conversationId);
   }
@@ -127,103 +129,56 @@ export class SocketService {
     return this.socket.fromEvent('receiveMessage');
   }
 
-
-  async createTransport() {
-    return new Promise((resolve, reject) => {
-      this.socket.emit('createTransport', {}, (response: any) => {
-        if (response.error) {
-          reject(response.error);
-        } else {
-          this.sendTransport = this.mediasoupDevice!.createSendTransport(response);
-          resolve(response);
-        }
-      });
-    });
+  startGroupCall(groupId: string, userId: string) {
+    this.socket.emit('startGroupCall', { groupId, userId });
   }
 
-  async connectTransport(transportId: string, dtlsParameters: any) {
-    return new Promise((resolve, reject) => {
-      console.log('connectTransport', transportId, this.transportId, dtlsParameters);
-      this.socket.emit('connectTransport', { transportId: this.transportId, dtlsParameters }, (response: any) => {
-        if (response.error) {
-          reject(response.error);
-        } else {
-          resolve(response);
-        }
-      });
-    });
+  joinGroupCall(groupId: string, userId: string) {
+    this.socket.emit('joinGroupCall', { groupId, userId });
   }
 
-  async produce(kind: 'audio' | 'video', track: MediaStreamTrack  ) {
-    if (!this.mediasoupDevice || !this.sendTransport) {
-      throw new Error("Mediasoup device or sendTransport is not initialized");
-    }
-  
-    const producer = await this.sendTransport.produce({ track });
-    return new Promise((resolve, reject) => {
-      this.socket.emit('produce', { kind, rtpParameters: producer.rtpParameters  }, (response: any) => {
-        if (response.error) {
-          reject(response.error);
-        } else {
-          resolve(response);
-        }
-      });
-    });
+  leaveGroupCall(groupId: string, userId: string) {
+    this.socket.emit('leaveGroupCall', { groupId, userId });
   }
 
-  async consume(producerId: string, rtpCapabilities: any) {
-    return new Promise((resolve, reject) => {
-      this.socket.emit('consume', { producerId, rtpCapabilities }, (response: any) => {
-        if (response.error) {
-          reject(response.error);
-        } else {
-          resolve(response);
-        }
-      });
-    });
+  onGroupCallStarted() {
+    return this.socket.fromEvent('groupCallStarted');
   }
 
-  async initializeMediasoupDevice(rtpCapabilities: any) {
-    this.mediasoupDevice = new mediasoupClient.Device();
-    await this.mediasoupDevice.load({ routerRtpCapabilities: rtpCapabilities });
+  onGroupCallEnded() {
+    return this.socket.fromEvent('groupCallEnded');
   }
 
-
-
-  getMediasoupDevice(): mediasoupClient.Device | null {
-    return this.mediasoupDevice;
+  onGroupCallParticipantJoined() {
+    return this.socket.fromEvent('groupCallParticipantJoined');
   }
 
-  onNewParticipant() {
-    return this.socket.fromEvent('newParticipant');
+  onGroupCallParticipantLeft() {
+    return this.socket.fromEvent('groupCallParticipantLeft');
   }
 
-  getParticipants(groupId: string): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      this.socket.emit('getParticipants', groupId, (response: any) => {
-        if (response.error) {
-          reject(response.error);
-        } else {
-          resolve(response.participants);
-        }
-      });
-    });
+  onGroupCallOffer() {
+    return this.socket.fromEvent('groupCallOffer');
   }
 
-getRouterRtpCapabilities() {
-  return new Promise<any>((resolve, reject) => {
-    this.socket.emit('getRouterRtpCapabilities', {}, (response: any) => {
-      console.log('Received router RTP capabilities response:', response);
+  onGroupCallAnswer() {
+    return this.socket.fromEvent('groupCallAnswer');
+  }
 
-      if (response.error) {
-        reject(response.error);
-      } else {
-        resolve(response.rtpCapabilities);
-      }
-    });
-  });
-}
-  
+  onGroupCallIceCandidate() {
+    return this.socket.fromEvent('groupCallIceCandidate');
+  }
 
+  sendGroupCallAnswer(groupId: string, toUserId: string, answer: any) {
+    this.socket.emit('groupCallAnswer', { groupId, toUserId, answer });
+  }
+
+  sendGroupCallIceCandidate(groupId: string, toUserId: string, candidate: any) {
+    this.socket.emit('groupCallIceCandidate', { groupId, toUserId, candidate });
+  }
+
+  sendGroupCallOffer(groupId: string, toUserId: string, offer: any) {
+    this.socket.emit('groupCallOffer', { groupId, toUserId, offer });
+  }
 
 }

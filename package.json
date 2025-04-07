@@ -25,7 +25,6 @@
     "@popperjs/core": "^2.11.8",
     "@types/jitsi-meet": "^2.0.5",
     "bootstrap": "^5.3.3",
-    "mediasoup-client": "^3.9.2",
     "ngx-socket-io": "^4.8.4",
     "ngx-toastr": "^19.0.0",
     "rxjs": "~7.8.0",

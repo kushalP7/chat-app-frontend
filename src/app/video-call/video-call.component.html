@@ -1,0 +1,40 @@
+<div class="container-fluid video-call-container" *ngIf="callInProgress">
+    <div class="video-grid">
+        <div class="remote-video-container">
+            <video #userVideo autoplay playsinline class="remote-video"></video>
+        </div>
+
+        <div class="local-video-container" id="localVideo">
+            <video #myVideo autoplay playsinline class="local-video" muted></video>
+        </div>
+    </div>
+
+    <div class="call-controls">
+        <button class="btn control-btn btn-secondary btn-sm" (click)="toggleVideo()">
+            <i class="fa-solid" [ngClass]="{'fa-video': isVideoEnabled, 'fa-video-slash': !isVideoEnabled}"></i>
+        </button>
+
+        <button class="btn control-btn btn-warning btn-sm" (click)="toggleMute()">
+            <i class="fa-solid" [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
+        </button>
+
+        <button class="btn control-btn btn-info btn-sm" (click)="toggleScreenShare()">
+            <i class="fa-solid" [ngClass]="{'fa-display': !isScreenSharing, 'fa-times-circle': isScreenSharing}"></i>
+        </button>
+        <button class="btn control-btn btn-success btn-sm" (click)="toggleRecording()">
+            <i class="fa-solid" 
+               [ngClass]="{ 'fa-circle': !isRecording,  'fa-square': isRecording,  'fa-xs': true }" [style.color]="isRecording ? '#ec0909' : ''"> </i>
+        </button>
+        
+        <button class="btn control-btn btn-danger btn-sm end-call" (click)="endCall()">
+            <i class="fa-solid fa-phone-slash"></i>
+        </button>
+    </div>
+
+
+    <div *ngIf="isRecording" class="recording-indicator">
+        <span class="recording-dot"></span>
+        REC
+    </div>
+
+</div>
