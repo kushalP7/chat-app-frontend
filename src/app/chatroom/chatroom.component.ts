@@ -4,7 +4,6 @@ import { AuthService } from '../core/services/auth.service';
 import { SocketService } from '../core/services/socket.service';
 import { UserService } from '../core/services/user.service';
 import { ToastrService } from 'ngx-toastr';
-import * as mediasoupClient from 'mediasoup-client';
 import { Router } from '@angular/router';
 
 
@@ -80,13 +79,6 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   isVideoEnabled: boolean = true;
   private previousStreams: MediaStream[] = [];
   private pendingCandidates: RTCIceCandidate[] = [];
-
-  private mediasoupDevice: mediasoupClient.Device | null = null;
-  private sendTransport: mediasoupClient.types.Transport | null = null;
-  private recvTransport: any | null = null;
-  private producers: { [key: string]: mediasoupClient.types.Producer } = {};
-  private consumers: { [key: string]: mediasoupClient.types.Consumer } = {};
-
 
   constructor(
     private socketService: SocketService,

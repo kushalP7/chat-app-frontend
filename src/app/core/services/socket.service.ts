@@ -4,17 +4,12 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
-import * as mediasoupClient from 'mediasoup-client';
+
 import { Router } from '@angular/router';
 @Injectable({
   providedIn: 'root'
 })
 export class SocketService {
-  private mediasoupDevice: any;
-  transportId: string = '';
-  private sendTransport!: mediasoupClient.types.Transport;
-
-
   constructor(
     private socket: Socket,
     private http: HttpClient,
