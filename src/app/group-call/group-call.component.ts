@@ -38,8 +38,6 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   ) { }
 
   async ngOnInit() {
-    console.log('participants', this.participants);
-
     this.groupId = this.route.snapshot.params['groupId'];
     this.isCallInitiator = this.route.snapshot.queryParams['initiator'] === 'true';
 

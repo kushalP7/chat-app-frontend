@@ -5,6 +5,7 @@ import { SocketService } from '../core/services/socket.service';
 import { AuthService } from '../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-chat-new',
@@ -42,6 +43,8 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   groupCallParticipants: any[] = [];
   activeGroupCalls: { [groupId: string]: boolean } = {};
   showDropdown = false;
+  private callListenerSub: Subscription | undefined;
+
 
 
 
@@ -147,9 +150,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.checkScreenSize();
-    if (!this.callInProgress) {
-      this.setupCallNotifications();
-    }
+    this.setupCallNotifications();
     this.loadChatConversations();
     this.loadGroupConversations();
     this.loadUsers();
@@ -168,7 +169,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         this.activeGroupCalls[data.groupId] = data.activeGroupCall;
 
         this.groupCallParticipants = data.participants || [];
-        this.cdr.detectChanges(); 
+        this.cdr.detectChanges();
       }
     });
 
@@ -197,6 +198,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   ngOnDestroy() {
     this.endCall();
     window.removeEventListener('beforeunload', this.endCall.bind(this));
+    this.callListenerSub?.unsubscribe();
   }
 
   ngAfterViewInit() {
@@ -206,34 +208,55 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
 
   private setupCallNotifications() {
-    this.socketService.onIncomingCall().subscribe(async (data: any) => {
-      if (!data.offer) return;
-      console.log('callInProgress', this.callInProgress);
+    this.callListenerSub = this.socketService.onIncomingCall().subscribe(async (data: any) => {
+      const myUserId = this.authService.getLoggedInUser()._id;
 
+      if (!data.offer) return;
+      if (data.from === myUserId) return;
       if (this.callInProgress) {
-        console.log("Call already in progress, ignoring duplicate request.");
+        console.log("Already in a call. Ignoring incoming call.");
         return;
       }
-      if (data.from === this.authService.getLoggedInUser()._id) return;
-
-      this.callType = data.callType;
-      const accept = confirm(`${data.from} is calling. Accept ${data.callType} Call?`);
-      if (accept) {
-        this.callInProgress = true;
-        this.router.navigate(['/video-call', data.from, data.callType]);
-      } else {
-        console.log('Call not accepted ');
+      if (data.to !== myUserId) {
+        console.log("This call is not for me.");
+        return;
       }
+      this.userService.getUserById(data.from).subscribe({
+        next: (res) => {
+          const callerName = res.data.username || 'Unknown User';
+
+          const accept = confirm(`${callerName} is calling you. Would you like to accept this ${data.callType} call?`);
+    
+          if (accept) {
+            this.callInProgress = true;
+
+            this.callListenerSub?.unsubscribe();
+
+            this.router.navigate(['/video-call', data.from], {
+              queryParams: { callType: data.callType }
+            });
+          } else {
+            console.log('Call not accepted');
+          }
+        },
+        error: (err) => {
+          console.error("Failed to fetch caller info:", err);
+        }
+      });
     });
   }
 
 
   startVideoCall(receiverId: string) {
-    this.router.navigate(['/video-call', receiverId, 'video']);
+    this.router.navigate(['/video-call', receiverId], {
+      queryParams: { initiator: 'true', callType: 'video' }
+    });
   }
 
   startAudioCall(receiverId: string) {
-    this.router.navigate(['/video-call', receiverId, 'audio']);
+    this.router.navigate(['/video-call', receiverId], {
+      queryParams: { initiator: 'true', callType: 'audio' }
+    });
   }
 
 

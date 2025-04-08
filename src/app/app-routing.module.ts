@@ -31,7 +31,7 @@ const routes: Routes = [
     component : ChatNewComponent
   },
   {
-    path : 'video-call/:receiverId/:callType',
+    path : 'video-call/:receiverId',
     component : VideoCallComponent
   },
   {

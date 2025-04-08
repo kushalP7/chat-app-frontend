@@ -2,7 +2,7 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } fr
 import { AuthService } from '../core/services/auth.service';
 import { SocketService } from '../core/services/socket.service';
 import { ToastrService } from 'ngx-toastr';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouteReuseStrategy } from '@angular/router';
 
 @Component({
   selector: 'app-video-call',
@@ -24,19 +24,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   private peerConnection!: RTCPeerConnection;
   private servers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun.l.google.com:5349" },
-      { urls: "stun:stun1.l.google.com:3478" },
-      { urls: "stun:stun1.l.google.com:5349" },
-      { urls: "stun:stun2.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:5349" },
-      { urls: "stun:stun3.l.google.com:3478" },
-      { urls: "stun:stun3.l.google.com:5349" },
-      { urls: "stun:stun4.l.google.com:19302" },
-      { urls: "stun:stun4.l.google.com:5349" }
+      { urls: 'stun:stun.l.google.com:19302' }
     ]
   };
   private previousStreams: MediaStream[] = [];
@@ -57,20 +45,18 @@ export class VideoCallComponent implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
-      this.receiverId = params['receiverId'];
-      this.callType = params['callType'] || 'video';
-      this.isCallInitiator = !!this.receiverId;
-      if (this.isCallInitiator) {
-        if (this.callType === 'video') {
-          this.callVideoUser();
-        } else {
-          this.callAudioUser();
-        }
-      }
-    });
+    this.receiverId = this.route.snapshot.params['receiverId'];
+    this.callType = this.route.snapshot.queryParams['callType'];
 
-    this.listenForCalls();
+    this.isCallInitiator = !!this.receiverId;
+    if (this.isCallInitiator) {
+      if (this.callType === 'video') {
+        this.callVideoUser();
+      } else {
+        this.callAudioUser();
+      }
+    }
+        this.listenForCalls();
   }
 
   ngOnDestroy() {
