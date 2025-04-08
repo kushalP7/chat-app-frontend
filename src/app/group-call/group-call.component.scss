@@ -1,88 +1,67 @@
 .group-call-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background: #1a1a1a;
-    color: white;
-  
-    .local-video-container {
-      position: relative;
-      width: 200px;
-      height: 150px;
-      margin: 10px;
-      border: 2px solid #4CAF50;
-      border-radius: 8px;
-      overflow: hidden;
-      align-self: flex-end;
-      z-index: 10;
-  
+  height: 100vh;
+  background-color: #1a1a1a;
+  color: white;
+  position: relative;
+
+  .remote-videos-container {
+    height: calc(100vh - 80px); 
+    overflow-y: auto;
+    padding-bottom: 80px;
+
+    .remote-video-item {
+      min-height: 200px;
+
       video {
-        width: 100%;
-        height: 100%;
         object-fit: cover;
-      }
-  
-      .call-controls {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        display: flex;
-        justify-content: center;
-        padding: 8px;
-        background: rgba(0, 0, 0, 0.5);
-  
-        button {
-          background: #333;
-          border: none;
-          color: white;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          margin: 0 5px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-  
-          &.active {
-            background: #4CAF50;
-          }
-  
-          &.end-call {
-            background: #f44336;
-          }
-        }
-      }
-    }
-  
-    .remote-videos-container {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 10px;
-      padding: 10px;
-  
-      .remote-video-item {
-        position: relative;
-        background: #333;
-        border-radius: 8px;
-        overflow: hidden;
-  
-        video {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-  
-        .participant-name {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          padding: 8px;
-          background: rgba(0, 0, 0, 0.5);
-        }
       }
     }
   }
+
+  .local-video-container {
+    width: 180px;
+    height: 135px;
+    bottom: 100px;
+    right: 20px;
+    z-index: 1000;
+    border: 3px solid #4CAF50;
+    
+    video {
+      object-fit: cover;
+    }
+  }
+
+  .call-controls {
+    z-index: 1001;
+    
+    button {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .participant-name {
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 768px) {
+  .group-call-container {
+    .local-video-container {
+      width: 120px;
+      height: 90px;
+      bottom: 80px;
+    }
+
+    .call-controls button {
+      width: 50px;
+      height: 50px;
+    }
+  }
+}

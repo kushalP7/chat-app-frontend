@@ -1,26 +1,50 @@
-<div class="group-call-container">
-    <div class="local-video-container">
-      <video #localVideo autoplay playsinline muted></video>
-      <div class="call-controls">
-        <button (click)="toggleMute()" [class.active]="isMuted">
-          <i class="fa-solid" [class.fa-microphone]="!isMuted" [class.fa-microphone-slash]="isMuted"></i>
-        </button>
-        <button (click)="toggleVideo()" [class.active]="!isVideoEnabled">
-          <i class="fa-solid" [class.fa-video]="isVideoEnabled" [class.fa-video-slash]="!isVideoEnabled"></i>
-        </button>
-        <button (click)="toggleScreenShare()" [class.active]="isScreenSharing">
-          <i class="fa-solid fa-display"></i>
-        </button>
-        <button (click)="leaveCall()" class="end-call">
-          <i class="fa-solid fa-phone-slash"></i>
-        </button>
+<div class="container-fluid group-call-container p-0">
+  <div class="row g-0 remote-videos-container">
+    <div class="local-video-container position-absolute rounded-3 overflow-hidden shadow-lg">
+      <video #localVideo autoplay playsinline muted class="w-100 h-100"></video>
+      <div class="participant-name position-absolute bottom-0 start-0 end-0 px-2 py-1 bg-dark bg-opacity-75">
+        You
       </div>
     </div>
-  
-    <div #remoteVideos class="remote-videos-container">
-      <div *ngFor="let participant of participants" class="remote-video-item">
-        <video autoplay playsinline [srcObject]="participant.stream"></video>
-        <div class="participant-name">{{ participant.userId }}</div>
+
+    <div #remoteVideos class="col-12 h-100 p-2">
+      <div class="row g-2 h-100">
+        <div *ngFor="let participant of participants" class="remote-video-item col-12 h-100" [ngClass]="{
+                 'col-md-6': participants.length > 1,
+                 'col-lg-4': participants.length > 2,
+                 'col-xl-3': participants.length > 3
+               }">
+          <div class="position-relative h-100 w-100 rounded-3 overflow-hidden bg-dark">
+            <video autoplay playsinline [srcObject]="participant.stream" class="w-100 h-100"></video>
+            <div class="participant-name position-absolute bottom-0 start-0 end-0 px-2 py-1 bg-dark bg-opacity-75">
+              {{ participant.username || 'User' }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+
+  <div class="call-controls position-fixed bottom-0 start-0 end-0 py-3 bg-dark bg-opacity-75">
+    <div class="d-flex justify-content-center gap-3">
+      <button (click)="toggleMute()" class="btn btn-lg rounded-circle"
+        [ngClass]="{'btn-secondary': !isMuted, 'btn-danger': isMuted}">
+        <i class="fa-solid" [class.fa-microphone]="!isMuted" [class.fa-microphone-slash]="isMuted"></i>
+      </button>
+
+      <button (click)="toggleVideo()" class="btn btn-lg rounded-circle"
+        [ngClass]="{'btn-secondary': isVideoEnabled, 'btn-danger': !isVideoEnabled}">
+        <i class="fa-solid" [class.fa-video]="isVideoEnabled" [class.fa-video-slash]="!isVideoEnabled"></i>
+      </button>
+
+      <button (click)="toggleScreenShare()" class="btn btn-lg rounded-circle"
+        [ngClass]="{'btn-secondary': !isScreenSharing, 'btn-primary': isScreenSharing}">
+        <i class="fa-solid fa-display"></i>
+      </button>
+
+      <button (click)="leaveCall()" class="btn btn-lg rounded-circle btn-danger">
+        <i class="fa-solid fa-phone-slash"></i>
+      </button>
+    </div>
+  </div>
+</div>

@@ -56,7 +56,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         this.callAudioUser();
       }
     }
-        this.listenForCalls();
+    this.listenForCalls();
   }
 
   ngOnDestroy() {

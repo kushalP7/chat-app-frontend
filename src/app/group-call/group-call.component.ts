@@ -3,6 +3,7 @@ import { AuthService } from '../core/services/auth.service';
 import { SocketService } from '../core/services/socket.service';
 import { ToastrService } from 'ngx-toastr';
 import { ActivatedRoute, Router } from '@angular/router';
+import { UserService } from '../core/services/user.service';
 
 @Component({
   selector: 'app-group-call',
@@ -14,7 +15,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   @ViewChild("remoteVideos") remoteVideosContainer!: ElementRef;
 
   groupId!: string;
-  participants: { userId: string, stream: MediaStream }[] = [];
+  participants: { userId: string, username?: string, stream: MediaStream }[] = [];
   localStream!: MediaStream;
   peerConnections: { [key: string]: RTCPeerConnection } = {};
   isCallInitiator = false;
@@ -34,7 +35,8 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     public authService: AuthService,
     private toastr: ToastrService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private userService: UserService
   ) { }
 
   async ngOnInit() {
@@ -53,9 +55,9 @@ export class GroupCallComponent implements OnInit, OnDestroy {
 
       this.setupSocketListeners();
     } catch (error) {
-      console.error('Error initializing group call:', error);
-      this.toastr.error('Failed to start group call');
-      this.router.navigate(['/chat']);
+      // console.error('Error initializing group call:', error);
+      // this.toastr.error('Failed to start group call');
+      // this.router.navigate(['/chat']);
     }
   }
 
@@ -162,6 +164,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       existingParticipant.stream = stream;
     } else {
       this.participants.push({ userId, stream });
+      this.fetchAndAttachUsername(userId);      
     }
   }
 
@@ -179,6 +182,20 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     } else {
       await this.startScreenShare();
     }
+  }
+
+  private fetchAndAttachUsername(userId: string) {
+    this.userService.getUserById(userId).subscribe({
+      next: (userData) => {
+        const participant = this.participants.find(p => p.userId === userId);
+        if (participant) {
+          participant.username = userData.data.username;
+        }
+      },
+      error: (err) => {
+        console.warn(`Failed to fetch username for userId: ${userId}`, err);
+      }
+    });
   }
 
   async startScreenShare() {

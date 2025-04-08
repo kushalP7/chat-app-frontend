@@ -10,25 +10,24 @@
     </div>
     <div class="call-controls">
 
-        <button class="btn control-btn btn-secondary btn-sm" (click)="toggleVideo()" data-bs-toggle="tooltip"
-            title="Video">
-            <i class="fa-solid" [ngClass]="{'fa-video': isVideoEnabled, 'fa-video-slash': !isVideoEnabled}"></i>
+        <button class="btn control-btn  btn-sm" (click)="toggleVideo()" data-bs-toggle="tooltip" title="Video"
+            [ngClass]="{'btn-secondary': isVideoEnabled, 'btn-danger': !isVideoEnabled}">
+            <i class="fa-solid" [class.fa-video]="isVideoEnabled" [class.fa-video-slash]="!isVideoEnabled"></i>
         </button>
 
-        <button class="btn control-btn btn-warning btn-sm" (click)="toggleMute()" data-bs-toggle="tooltip"
-            title="Microphone">
-            <i class="fa-solid" [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
+        <button class="btn control-btn btn-sm" (click)="toggleMute()" data-bs-toggle="tooltip" title="Microphone"
+            [ngClass]="{'btn-secondary': !isMuted, 'btn-danger': isMuted}">
+            <i class="fa-solid" [class.fa-microphone]="!isMuted" [class.fa-microphone-slash]="isMuted"></i> </button>
+
+        <button class="btn control-btn btn-sm" (click)="toggleScreenShare()" data-bs-toggle="tooltip"
+            title="Screen Share" [ngClass]="{'btn-secondary': !isScreenSharing, 'btn-primary': isScreenSharing}">
+            <i class="fa-solid" [class.fa-display]="!isScreenSharing" [class.fa-xmark]="isScreenSharing"></i>
         </button>
 
-        <button class="btn control-btn btn-info btn-sm" (click)="toggleScreenShare()" data-bs-toggle="tooltip"
-            title="Screen Share">
-            <i class="fa-solid" [ngClass]="{'fa-display': !isScreenSharing, 'fa-times-circle': isScreenSharing}"></i>
-        </button>
-
-        <button class="btn control-btn btn-success btn-sm" (click)="toggleRecording()" data-bs-toggle="tooltip"
-            title="Recording">
-            <i class="fa-solid" [ngClass]="{ 'fa-circle': !isRecording,  'fa-square': isRecording,  'fa-xs': true }"
-                [style.color]="isRecording ? '#ec0909' : ''"> </i>
+        <button class="btn control-btn btn-sm" (click)="toggleRecording()" data-bs-toggle="tooltip" title="Recording"
+            [ngClass]="{'btn-secondary': !isRecording, 'btn-dark': isRecording}">
+            <i class="fa-solid" [class.fa-circle]="!isRecording" [class.fa-square]="isRecording" [class.fa-xs]="true"
+                [style.color]="isRecording ? '#ec0909' : ''"></i>
         </button>
 
         <button class="btn control-btn btn-danger btn-sm end-call" (click)="endCall()" data-bs-toggle="tooltip"
