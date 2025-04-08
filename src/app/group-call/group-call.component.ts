@@ -55,9 +55,9 @@ export class GroupCallComponent implements OnInit, OnDestroy {
 
       this.setupSocketListeners();
     } catch (error) {
-      // console.error('Error initializing group call:', error);
-      // this.toastr.error('Failed to start group call');
-      // this.router.navigate(['/chat']);
+      console.error('Error initializing group call:', error);
+      this.toastr.error('Failed to start group call');
+      this.router.navigate(['/chat']);
     }
   }
 
@@ -81,52 +81,89 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   }
 
   private setupSocketListeners() {
+    // this.socketService.onGroupCallParticipantJoined().subscribe(async (data: any) => {
+    //   const { userId } = data;
+    //   if (userId === this.authService.getLoggedInUser()._id) return;
+
+    //   const pc = new RTCPeerConnection(this.iceServers);
+    //   this.peerConnections[userId] = pc;
+
+    //   this.localStream.getTracks().forEach(track => {
+    //     pc.addTrack(track, this.localStream);
+    //   });
+
+    //   pc.onicecandidate = (event) => {
+    //     if (event.candidate) {
+    //       this.socketService.sendGroupCallIceCandidate(this.groupId, userId, event.candidate);
+    //     }
+    //   };
+
+    //   pc.ontrack = (event) => {
+    //     this.handleRemoteStream(userId, event.streams[0]);
+    //   };
+
+    //   if (this.isCallInitiator) {
+    //     const offer = await pc.createOffer();
+    //     await pc.setLocalDescription(offer);
+    //     this.socketService.sendGroupCallOffer(this.groupId, userId, offer);
+    //   }
+    // });
     this.socketService.onGroupCallParticipantJoined().subscribe(async (data: any) => {
       const { userId } = data;
       if (userId === this.authService.getLoggedInUser()._id) return;
 
-      const pc = new RTCPeerConnection(this.iceServers);
-      this.peerConnections[userId] = pc;
+      // Create connection with the new participant
+      await this.createPeerConnection(userId);
 
-      this.localStream.getTracks().forEach(track => {
-        pc.addTrack(track, this.localStream);
-      });
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          this.socketService.sendGroupCallIceCandidate(this.groupId, userId, event.candidate);
-        }
-      };
-
-      pc.ontrack = (event) => {
-        this.handleRemoteStream(userId, event.streams[0]);
-      };
-
+      // If we're the initiator, send offer immediately
       if (this.isCallInitiator) {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        this.socketService.sendGroupCallOffer(this.groupId, userId, offer);
+        await this.sendOffer(userId);
+      }
+
+      // For existing participants, create connections with the new participant
+      if (this.participants.length > 0) {
+        this.participants.forEach(async participant => {
+          if (participant.userId !== userId) {
+            await this.createPeerConnection(participant.userId);
+            await this.sendOffer(participant.userId);
+          }
+        });
       }
     });
 
+    // this.socketService.onGroupCallOffer().subscribe(async (data: any) => {
+    //   const { fromUserId, offer } = data;
+    //   const pc = this.peerConnections[fromUserId] || new RTCPeerConnection(this.iceServers);
+    //   this.peerConnections[fromUserId] = pc;
+
+    //   this.localStream.getTracks().forEach(track => {
+    //     pc.addTrack(track, this.localStream);
+    //   });
+
+    //   pc.onicecandidate = (event) => {
+    //     if (event.candidate) {
+    //       this.socketService.sendGroupCallIceCandidate(this.groupId, fromUserId, event.candidate);
+    //     }
+    //   };
+
+    //   pc.ontrack = (event) => {
+    //     this.handleRemoteStream(fromUserId, event.streams[0]);
+    //   };
+
+    //   await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    //   const answer = await pc.createAnswer();
+    //   await pc.setLocalDescription(answer);
+    //   this.socketService.sendGroupCallAnswer(this.groupId, fromUserId, answer);
+    // });
     this.socketService.onGroupCallOffer().subscribe(async (data: any) => {
       const { fromUserId, offer } = data;
-      const pc = this.peerConnections[fromUserId] || new RTCPeerConnection(this.iceServers);
-      this.peerConnections[fromUserId] = pc;
 
-      this.localStream.getTracks().forEach(track => {
-        pc.addTrack(track, this.localStream);
-      });
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          this.socketService.sendGroupCallIceCandidate(this.groupId, fromUserId, event.candidate);
-        }
-      };
-
-      pc.ontrack = (event) => {
-        this.handleRemoteStream(fromUserId, event.streams[0]);
-      };
+      // Create or get existing connection
+      const pc = await this.createPeerConnection(fromUserId);
+      if (!pc) {
+        console.log('Peer connection not created');
+        return;
+      }
 
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await pc.createAnswer();
@@ -152,10 +189,59 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       }
     });
 
+    // this.socketService.onGroupCallParticipantLeft().subscribe((data: any) => {
+    //   const { userId } = data;
+    //   this.removeParticipant(userId);
+    // });
     this.socketService.onGroupCallParticipantLeft().subscribe((data: any) => {
       const { userId } = data;
-      this.removeParticipant(userId);
+      
+      // Close all connections related to this user
+      Object.keys(this.peerConnections).forEach(peerId => {
+        if (peerId === userId) {
+          this.peerConnections[peerId].close();
+          delete this.peerConnections[peerId];
+        }
+      });
+      
+      // Remove from participants list
+      this.participants = this.participants.filter(p => p.userId !== userId);
     });
+  }
+
+  private async createPeerConnection(userId: string) {
+    if (this.peerConnections[userId]) return; // Connection already exists
+
+    const pc = new RTCPeerConnection(this.iceServers);
+    this.peerConnections[userId] = pc;
+
+    // Add our local tracks
+    this.localStream.getTracks().forEach(track => {
+      pc.addTrack(track, this.localStream);
+    });
+
+    // ICE candidate handler
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        this.socketService.sendGroupCallIceCandidate(this.groupId, userId, event.candidate);
+      }
+    };
+
+    // Track handler
+    pc.ontrack = (event) => {
+      this.handleRemoteStream(userId, event.streams[0]);
+    };
+
+    return pc;
+  }
+
+  private async sendOffer(userId: string) {
+    const pc = this.peerConnections[userId];
+    if (!pc) return;
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    this.socketService.sendGroupCallOffer(this.groupId, userId, offer);
   }
 
   private handleRemoteStream(userId: string, stream: MediaStream) {
@@ -164,7 +250,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       existingParticipant.stream = stream;
     } else {
       this.participants.push({ userId, stream });
-      this.fetchAndAttachUsername(userId);      
+      this.fetchAndAttachUsername(userId);
     }
   }
 
@@ -268,5 +354,5 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     this.participants = [];
   }
 
-  
+
 }
