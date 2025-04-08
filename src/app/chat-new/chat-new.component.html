@@ -570,18 +570,28 @@
                             <label for="groupAvatar" class="form-label">Group Avatar</label>
                             <input type="file" class="form-control" id="groupAvatar" (change)="onFileSelected($event)">
                         </div>
-
                         <div class="mb-3">
-                            <label class="form-label">Select Members</label>
-                            <div *ngFor="let user of users" class="form-check">
-                                <input class="form-check-input" type="checkbox" [id]="'user-' + user._id"
-                                    (change)="toggleMemberSelection(user._id)">
-                                <label class="form-check-label" [for]="'user-' + user._id">
+                            <div class="mb-3">
+                                <label class="form-label">Select Members</label>
+                                <div class="custom-multiselect border p-2" (click)="toggleDropdown()">
+                                  <span *ngFor="let user of selectedMembers" class="badge bg-primary me-1">
+                                    {{ user.username }} 
+                                    <span (click)="removeUser(user)" class="ms-1" style="cursor:pointer;">&times;</span>
+                                  </span>
+                                  <input type="text" class="border-0" readonly style="outline: none; width: 1px;" />
+                                </div>
+                              
+                                <div *ngIf="showDropdown" class="border p-2 mt-1" style="max-height: 150px; overflow-y: auto;">
+                                  <div *ngFor="let user of users" (click)="selectUser(user)" 
+                                       [class.bg-light]="isSelected(user)"
+                                       style="cursor: pointer; padding: 5px;">
                                     {{ user.username }}
-                                </label>
-                            </div>
-                        </div>
-
+                                  </div>
+                                </div>
+                              </div>
+                              
+                          </div>
+                        
                         <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Create Group</button>
                         <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal"
                             (click)="toggleGroupForm()">Cancel</button>

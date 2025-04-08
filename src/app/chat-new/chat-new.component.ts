@@ -35,13 +35,13 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   users: any[] = [];
   groupForm!: FormGroup;
   showGroupForm = false;
-  selectedMembers: string[] = [];
+  selectedMembers: any[] = [];
   selectedFile: File | null = null;
   isMobileView = false;
   isSidebarOpen = false;
   groupCallParticipants: any[] = [];
   activeGroupCalls: { [groupId: string]: boolean } = {};
-
+  showDropdown = false;
 
 
 
@@ -109,6 +109,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.groupForm = this.fb.group({
       groupName: ['', Validators.required],
       groupDescription: [''],
+      groupMembers: [[]],
       groupAvatar: null,
     });
 
@@ -451,27 +452,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   toggleGroupForm() {
     this.showGroupForm = !this.showGroupForm;
     if (this.showGroupForm) {
-      this.loadAllUsers();
-    }
-  }
-
-  loadAllUsers() {
-    this.userService.getAllUsersExceptCurrentUser().subscribe({
-      next: response => {
-        this.users = response.data;
-      },
-      error: error => {
-        this.toastr.error(error.error.message, '', { timeOut: 2000 });
-
-      }
-    });
-  }
-
-  toggleMemberSelection(userId: string) {
-    if (this.selectedMembers.includes(userId)) {
-      this.selectedMembers = this.selectedMembers.filter(id => id !== userId);
-    } else {
-      this.selectedMembers.push(userId);
+      this.loadUsers();
     }
   }
 
@@ -480,6 +461,25 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     if (target.files && target.files.length) {
       this.selectedFile = target.files[0];
     }
+  }
+  
+  toggleDropdown() {
+    this.showDropdown = !this.showDropdown;
+  }
+  selectUser(user: any) {
+    if (!this.selectedMembers.find(u => u._id === user._id)) {
+      this.selectedMembers.push(user);
+      this.groupForm.get('groupMembers')?.setValue(this.selectedMembers.map(u => u._id));
+    }
+  }
+  
+  removeUser(user: any) {
+    this.selectedMembers = this.selectedMembers.filter(u => u._id !== user._id);
+    this.groupForm.get('groupMembers')?.setValue(this.selectedMembers.map(u => u._id));
+  }
+  
+  isSelected(user: any): boolean {
+    return !!this.selectedMembers.find(u => u._id === user._id);
   }
 
   createGroup() {
@@ -491,7 +491,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     const groupData = {
       groupName: this.groupForm.get('groupName')?.value,
       groupAdmin: this.authService.getLoggedInUser()._id,
-      members: this.selectedMembers,
+      members: this.groupForm.get('groupMembers')?.value,
       groupDescription: this.groupForm.get('groupDescription')?.value || ''
     };
 
@@ -499,7 +499,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
     formData.append('groupName', groupData.groupName);
     formData.append('groupAdmin', groupData.groupAdmin);
-    formData.append('members', JSON.stringify(groupData.members));
+    formData.append('groupMembers', JSON.stringify(groupData.members));
     formData.append('groupDescription', groupData.groupDescription);
 
     if (this.selectedFile) {
