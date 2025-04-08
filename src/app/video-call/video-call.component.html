@@ -8,27 +8,34 @@
             <video #myVideo autoplay playsinline class="local-video" muted></video>
         </div>
     </div>
-
     <div class="call-controls">
-        <button class="btn control-btn btn-secondary btn-sm" (click)="toggleVideo()">
+
+        <button class="btn control-btn btn-secondary btn-sm" (click)="toggleVideo()" data-bs-toggle="tooltip"
+            title="Video">
             <i class="fa-solid" [ngClass]="{'fa-video': isVideoEnabled, 'fa-video-slash': !isVideoEnabled}"></i>
         </button>
 
-        <button class="btn control-btn btn-warning btn-sm" (click)="toggleMute()">
+        <button class="btn control-btn btn-warning btn-sm" (click)="toggleMute()" data-bs-toggle="tooltip"
+            title="Microphone">
             <i class="fa-solid" [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
         </button>
 
-        <button class="btn control-btn btn-info btn-sm" (click)="toggleScreenShare()">
+        <button class="btn control-btn btn-info btn-sm" (click)="toggleScreenShare()" data-bs-toggle="tooltip"
+            title="Screen Share">
             <i class="fa-solid" [ngClass]="{'fa-display': !isScreenSharing, 'fa-times-circle': isScreenSharing}"></i>
         </button>
-        <button class="btn control-btn btn-success btn-sm" (click)="toggleRecording()">
-            <i class="fa-solid" 
-               [ngClass]="{ 'fa-circle': !isRecording,  'fa-square': isRecording,  'fa-xs': true }" [style.color]="isRecording ? '#ec0909' : ''"> </i>
+
+        <button class="btn control-btn btn-success btn-sm" (click)="toggleRecording()" data-bs-toggle="tooltip"
+            title="Recording">
+            <i class="fa-solid" [ngClass]="{ 'fa-circle': !isRecording,  'fa-square': isRecording,  'fa-xs': true }"
+                [style.color]="isRecording ? '#ec0909' : ''"> </i>
         </button>
-        
-        <button class="btn control-btn btn-danger btn-sm end-call" (click)="endCall()">
+
+        <button class="btn control-btn btn-danger btn-sm end-call" (click)="endCall()" data-bs-toggle="tooltip"
+            title="End Call">
             <i class="fa-solid fa-phone-slash"></i>
         </button>
+
     </div>
 
 

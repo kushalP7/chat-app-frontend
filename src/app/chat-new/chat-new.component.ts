@@ -39,8 +39,9 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   selectedFile: File | null = null;
   isMobileView = false;
   isSidebarOpen = false;
-  activeGroupCall: any = null;
   groupCallParticipants: any[] = [];
+  activeGroupCalls: { [groupId: string]: boolean } = {};
+
 
 
 
@@ -163,15 +164,10 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
     this.socketService.onGroupCallStarted().subscribe((data: any) => {
       if (data.groupId === this.conversationId) {
-        this.activeGroupCall = data;
-        this.groupCallParticipants = data.participants || [];
-      }
-    });
+        this.activeGroupCalls[data.groupId] = data.activeGroupCall;
 
-    this.socketService.onGroupCallEnded().subscribe((groupId: string) => {
-      if (groupId === this.conversationId) {
-        this.activeGroupCall = null;
-        this.groupCallParticipants = [];
+        this.groupCallParticipants = data.participants || [];
+        this.cdr.detectChanges(); 
       }
     });
 
@@ -1001,7 +997,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   joinGroupCall(groupId: string) {
-    if (this.activeGroupCall) {
+    if (this.activeGroupCalls[groupId]) {
       this.router.navigate(['/group-call', groupId]);
     }
   }

@@ -39,7 +39,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     console.log('participants', this.participants);
-
+    this.cleanUp();
     this.groupId = this.route.snapshot.params['groupId'];
     this.isCallInitiator = this.route.snapshot.queryParams['initiator'] === 'true';
 
@@ -81,13 +81,17 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       const { userId } = data;
       if (userId === this.authService.getLoggedInUser()._id) return;
 
-      const pc = new RTCPeerConnection(this.iceServers);
+      const pc = this.peerConnections[userId] || new RTCPeerConnection(this.iceServers);
       this.peerConnections[userId] = pc;
 
-      this.localStream.getTracks().forEach(track => {
-        pc.addTrack(track, this.localStream);
-      });
-
+      // this.localStream.getTracks().forEach(track => {
+      //   pc.addTrack(track, this.localStream);
+      // });
+      if (pc.getSenders().length === 0) {
+        this.localStream.getTracks().forEach(track => {
+          pc.addTrack(track, this.localStream);
+        });
+      }
       pc.onicecandidate = (event) => {
         if (event.candidate) {
           this.socketService.sendGroupCallIceCandidate(this.groupId, userId, event.candidate);
@@ -138,7 +142,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       } else {
         console.warn('Skipping setting remote answer: Invalid state or no peer connection');
       }
-      
+
     });
 
     this.socketService.onGroupCallIceCandidate().subscribe((data: any) => {
@@ -187,13 +191,24 @@ export class GroupCallComponent implements OnInit, OnDestroy {
         audio: true
       });
 
+      // Object.keys(this.peerConnections).forEach(userId => {
+      //   const pc = this.peerConnections[userId];
+      //   const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
+      //   if (videoSender) {
+      //     videoSender.replaceTrack(this.screenStream!.getVideoTracks()[0]);
+      //   }
+      // });
       Object.keys(this.peerConnections).forEach(userId => {
         const pc = this.peerConnections[userId];
         const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
         if (videoSender) {
-          videoSender.replaceTrack(this.screenStream!.getVideoTracks()[0]);
+          videoSender.replaceTrack(this.screenStream!.getVideoTracks()[0])
+            .catch(err => console.error('Error replacing track:', err));
+        } else {
+          pc.addTrack(this.screenStream!.getVideoTracks()[0], this.screenStream!);
         }
       });
+
 
       this.isScreenSharing = true;
       this.screenStream.getVideoTracks()[0].onended = () => this.stopScreenShare();
@@ -211,8 +226,9 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     Object.keys(this.peerConnections).forEach(userId => {
       const pc = this.peerConnections[userId];
       const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
-      if (videoSender && this.localStream) {
-        videoSender.replaceTrack(this.localStream.getVideoTracks()[0]);
+      if (videoSender && this.localStream?.getVideoTracks().length) {
+        videoSender.replaceTrack(this.localStream.getVideoTracks()[0])
+          .catch(err => console.error('Error restoring video track:', err));
       }
     });
 
@@ -241,7 +257,14 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   }
 
   private cleanUp() {
-    Object.values(this.peerConnections).forEach(pc => pc.close());
+    Object.values(this.peerConnections).forEach(pc => {
+      pc.getSenders().forEach(sender => {
+        if (sender.track) {
+          sender.track.stop();
+        }
+      });
+      pc.close();
+    });
     this.peerConnections = {};
 
     this.localStream?.getTracks().forEach(track => track.stop());
@@ -253,4 +276,67 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.leaveCall();
   }
+
+  private addTracksToConnection(pc: RTCPeerConnection) {
+    if (pc.getSenders().length > 0) {
+      return;
+    }
+
+    const tracks = this.isScreenSharing && this.screenStream ?
+      [...this.screenStream.getTracks(), ...this.localStream.getAudioTracks()] :
+      this.localStream.getTracks();
+
+    tracks.forEach(track => {
+      try {
+        pc.addTrack(track, this.localStream);
+      } catch (error) {
+        console.error('Error adding track:', error);
+        if (error instanceof DOMException && error.name === 'InvalidAccessError') {
+          const existingSender = pc.getSenders().find(s => s.track?.id === track.id);
+          if (!existingSender) {
+            console.warn('Track exists but sender not found, attempting to recover');
+            pc.addTrack(track.clone(), this.localStream);
+          }
+        }
+      }
+    });
+  }
+
+  private handleReconnection(userId: string) {
+    if (this.peerConnections[userId]) {
+      this.peerConnections[userId].close();
+      delete this.peerConnections[userId];
+    }
+
+    this.removeParticipant(userId);
+    this.setupPeerConnection(userId);
+  }
+
+  private setupPeerConnection(userId: string) {
+    const pc = new RTCPeerConnection(this.iceServers);
+    this.peerConnections[userId] = pc;
+
+    this.addTracksToConnection(pc);
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        this.socketService.sendGroupCallIceCandidate(this.groupId, userId, event.candidate);
+      }
+    };
+
+    pc.ontrack = (event) => {
+      this.handleRemoteStream(userId, event.streams[0]);
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+        console.log(`Connection with ${userId} failed, attempting to reconnect`);
+        this.handleReconnection(userId);
+      }
+    };
+
+    return pc;
+  }
+
+
 }
