@@ -60,12 +60,10 @@ $white: #fff;
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 2rem;
   color: #444;
 
   .welcome-image {
-    max-width: 250px;
-    margin-bottom: 20px;
+    max-width: 400px;
   }
 
   .welcome-heading {
@@ -77,6 +75,7 @@ $white: #fff;
   .welcome-text {
     font-size: 16px;
     color: #666;
+    padding: 10px 20px;
   }
 }
 
@@ -133,6 +132,7 @@ $white: #fff;
 .chat-leftsidebar-nav {
   .nav-tabs {
     border-bottom: 2px solid transparent;
+    flex-wrap: nowrap;
 
     .nav-link {
       color: $dark;
@@ -186,7 +186,7 @@ $white: #fff;
 }
 
 .chat-message-list {
-  height: calc(100vh - 280px);
+  height: calc(100vh - 180px);
   @media (min-width: 992px) {
     height: calc(100vh - 180px);
   }
@@ -722,26 +722,6 @@ body[data-layout-mode="dark"] {
   position: relative;
   height: 100%;
 }
-// .call-container {
-//   position: absolute;
-//   top: 25%;
-//   left: 50%;
-//   transform: translate(-50%, -50%);
-//   z-index: 1000;
-//   width: 100%;
-//   max-width: 850px;
-// }
-
-// .video-call-container,
-// .audio-call-container {
-//   width: 100%;
-//   max-width: 800px;
-//   margin: auto;
-//   background-color: #222;
-//   color: white;
-//   border-radius: 10px;
-//   padding: 20px;
-// }
 
 .call-container {
   position: absolute;

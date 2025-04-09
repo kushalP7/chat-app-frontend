@@ -257,8 +257,9 @@
                             <div *ngIf="!userProfile && !isGroupChat" class="avatar-sm align-self-center me-3"><span
                                     class="avatar-title rounded-circle bg-soft-primary text-primary">
                                     {{username.charAt(0)}} </span></div>
-                            <div class="flex-grow-1" *ngIf="!isGroupChat">
-                                <h5 class="font-size-14 mb-1 text-truncate"><a href="javascript:void(0)"
+                            <div class="flex-grow-1" *ngIf="!isGroupChat" style="min-width: 106px;">
+                                <h5 class="font-size-14 mb-0 text-truncate" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="{{username}}"><a href="javascript:void(0)"
                                         style="text-decoration: none;" class="text-dark">{{username}}</a></h5>
 
                                 <p class="text-muted text-truncate mb-0">
@@ -269,8 +270,9 @@
                                 </p>
 
                             </div>
-                            <div class="flex-grow-1" *ngIf="isGroupChat">
-                                <h5 class="font-size-14 mb-1 text-truncate"><a href="javascript:void(0)"
+                            <div class="flex-grow-1" *ngIf="isGroupChat" style="min-width: 106px;">
+                                <h5 class="font-size-14 mb-1 text-truncate" data-bs-toggle="tooltip"
+                                    data-bs-placement="top" title="{{groupname}}"><a href="javascript:void(0)"
                                         style="text-decoration: none;" class="text-dark">{{groupname}}</a></h5>
 
                                 <p class="text-muted text-truncate mb-0">
@@ -282,24 +284,6 @@
                     </div>
                     <div class="col-xl-8 col-8">
                         <ul class="list-inline user-chat-nav text-end mb-0">
-                            <li class="list-inline-item">
-                                <div class="dropdown" ngbDropdown>
-                                    <button class="btn nav-btn dropdown-toggle no-arrow" type="button"
-                                        data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                                        ngbDropdownToggle>
-                                        <i class="fa-solid fa-magnifying-glass"></i>
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-end dropdown-menu-md p-2" ngbDropdownMenu>
-                                        <form class="px-2">
-                                            <div>
-                                                <input type="text" class="form-control border bg-soft-light"
-                                                    placeholder="Search...">
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </li>
-
                             <li class="list-inline-item">
                                 <button *ngIf="!isGroupChat && userProfile" class="btn nav-btn"
                                     (click)="startAudioCall(this.receiverId)">
@@ -314,23 +298,20 @@
                                 </button>
                             </li>
 
-                            <li class="list-inline-item">
-                                <button *ngIf="isGroupChat" class="btn nav-btn"
-                                    (click)="startGroupAudioCall(conversationId)">
+                            <li class="list-inline-item" *ngIf="isGroupChat">
+                                <button class="btn nav-btn" (click)="startGroupAudioCall(conversationId)">
                                     <i class="fa-solid fa-phone"></i>
                                 </button>
                             </li>
-                    
-                            <li class="list-inline-item">
-                                <button *ngIf="isGroupChat" class="btn nav-btn"
-                                    (click)="startGroupVideoCall(conversationId)">
+
+                            <li class="list-inline-item" *ngIf="isGroupChat">
+                                <button class="btn nav-btn" (click)="startGroupVideoCall(conversationId)">
                                     <i class="fa-solid fa-video"></i>
                                 </button>
                             </li>
-                    
-                            <li class="list-inline-item">
-                                <button *ngIf="isGroupChat && activeGroupCalls[conversationId]" class="btn nav-btn btn-success"
-                                    (click)="joinGroupCall(conversationId)">
+
+                            <li class="list-inline-item" *ngIf="isGroupChat && activeGroupCalls[conversationId]">
+                                <button class="btn nav-btn btn-success" (click)="joinGroupCall(conversationId)">
                                     <i class="fa-solid fa-phone-volume"></i> Join Call
                                 </button>
                             </li>
@@ -534,14 +515,17 @@
 
         </div>
 
-        <div class="col-md-9 chat-main p-0" *ngIf="!receiverId && !conversationId">
-            <i class="fa-solid fa-bars back-button me-2" (click)="toggleSidebar()" *ngIf="isMobileView"></i>
+        <div class="chat-main p-0" *ngIf="!receiverId && !conversationId" style="display: contents;">
             <div class="welcome-message">
-                <img src="../../assets/welcome.png" alt="Welcome to Chat" class="welcome-image img-fluid">
-                <h2 class="welcome-heading">Welcome to Chat!</h2>
-                <p class="welcome-text">Select a chat from the left to start a conversation.</p>
+                <img src="../../assets/welcome1.png" alt="Welcome to Chat" class="welcome-image img-fluid">
+                <h2 class="welcome-heading">Welcome to My Chat App!</h2>
+                <p class="welcome-text">To begin a conversation, select a contact or group from the left.</p>
+                <button class="btn btn-outline-primary back-button" (click)="toggleSidebar()">Browse Contacts to Start
+                    Chatting</button>
             </div>
         </div>
+
+
     </div>
 </div>
 
@@ -574,24 +558,25 @@
                             <div class="mb-3">
                                 <label class="form-label">Select Members</label>
                                 <div class="custom-multiselect border p-2" (click)="toggleDropdown()">
-                                  <span *ngFor="let user of selectedMembers" class="badge bg-primary me-1">
-                                    {{ user.username }} 
-                                    <span (click)="removeUser(user)" class="ms-1" style="cursor:pointer;">&times;</span>
-                                  </span>
-                                  <input type="text" class="border-0" readonly style="outline: none; width: 1px;" />
+                                    <span *ngFor="let user of selectedMembers" class="badge bg-primary me-1">
+                                        {{ user.username }}
+                                        <span (click)="removeUser(user)" class="ms-1"
+                                            style="cursor:pointer;">&times;</span>
+                                    </span>
+                                    <input type="text" class="border-0" readonly style="outline: none; width: 1px;" />
                                 </div>
-                              
-                                <div *ngIf="showDropdown" class="border p-2 mt-1" style="max-height: 150px; overflow-y: auto;">
-                                  <div *ngFor="let user of users" (click)="selectUser(user)" 
-                                       [class.bg-light]="isSelected(user)"
-                                       style="cursor: pointer; padding: 5px;">
-                                    {{ user.username }}
-                                  </div>
+
+                                <div *ngIf="showDropdown" class="border p-2 mt-1"
+                                    style="max-height: 150px; overflow-y: auto;">
+                                    <div *ngFor="let user of users" (click)="selectUser(user)"
+                                        [class.bg-light]="isSelected(user)" style="cursor: pointer; padding: 5px;">
+                                        {{ user.username }}
+                                    </div>
                                 </div>
-                              </div>
-                              
-                          </div>
-                        
+                            </div>
+
+                        </div>
+
                         <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Create Group</button>
                         <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal"
                             (click)="toggleGroupForm()">Cancel</button>
