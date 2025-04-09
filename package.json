@@ -22,8 +22,6 @@
     "@ctrl/ngx-emoji-mart": "^9.2.0",
     "@fortawesome/fontawesome-free": "^6.5.2",
     "@ng-bootstrap/ng-bootstrap": "^15.0.0",
-    "@popperjs/core": "^2.11.8",
-    "@types/jitsi-meet": "^2.0.5",
     "bootstrap": "^5.3.3",
     "ngx-socket-io": "^4.8.4",
     "ngx-toastr": "^19.0.0",

@@ -24,7 +24,29 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   private peerConnection!: RTCPeerConnection;
   private servers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun.l.google.com:5349" },
+      { urls: "stun:stun1.l.google.com:3478" },
+      { urls: "stun:stun1.l.google.com:5349" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:5349" },
+      { urls: "stun:stun3.l.google.com:3478" },
+      { urls: "stun:stun3.l.google.com:5349" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:5349" },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal123",
+        username: "kushal123"
+      },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal124",
+        username: "kushal124"
+      }
     ]
   };
   private previousStreams: MediaStream[] = [];
@@ -110,10 +132,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   private listenForCalls() {
     this.socketService.onIncomingCall().subscribe(async (data: any) => {
       if (!data.offer) return;
-      if (this.callInProgress) {
-        console.log("Call already in progress, ignoring duplicate request.");
-        return;
-      }
       this.callType = data.callType;
       this.callInProgress = true;
 

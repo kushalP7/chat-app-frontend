@@ -26,7 +26,29 @@ export class GroupCallComponent implements OnInit, OnDestroy {
 
   private iceServers = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' }
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun.l.google.com:5349" },
+      { urls: "stun:stun1.l.google.com:3478" },
+      { urls: "stun:stun1.l.google.com:5349" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:5349" },
+      { urls: "stun:stun3.l.google.com:3478" },
+      { urls: "stun:stun3.l.google.com:5349" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:5349" },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal123",
+        username: "kushal123"
+      },
+      {
+        urls: "stun:stun.l.google.com:19302",
+        credential: "kushal124",
+        username: "kushal124"
+      }
     ]
   };
 
@@ -111,16 +133,12 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     this.socketService.onGroupCallParticipantJoined().subscribe(async (data: any) => {
       const { userId } = data;
       if (userId === this.authService.getLoggedInUser()._id) return;
-
-      // Create connection with the new participant
       await this.createPeerConnection(userId);
 
-      // If we're the initiator, send offer immediately
       if (this.isCallInitiator) {
         await this.sendOffer(userId);
       }
 
-      // For existing participants, create connections with the new participant
       if (this.participants.length > 0) {
         this.participants.forEach(async participant => {
           if (participant.userId !== userId) {
@@ -158,7 +176,6 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     this.socketService.onGroupCallOffer().subscribe(async (data: any) => {
       const { fromUserId, offer } = data;
 
-      // Create or get existing connection
       const pc = await this.createPeerConnection(fromUserId);
       if (!pc) {
         console.log('Peer connection not created');
@@ -195,39 +212,34 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     // });
     this.socketService.onGroupCallParticipantLeft().subscribe((data: any) => {
       const { userId } = data;
-      
-      // Close all connections related to this user
+
       Object.keys(this.peerConnections).forEach(peerId => {
         if (peerId === userId) {
           this.peerConnections[peerId].close();
           delete this.peerConnections[peerId];
         }
       });
-      
-      // Remove from participants list
+
       this.participants = this.participants.filter(p => p.userId !== userId);
     });
   }
 
   private async createPeerConnection(userId: string) {
-    if (this.peerConnections[userId]) return; // Connection already exists
+    if (this.peerConnections[userId]) return;
 
     const pc = new RTCPeerConnection(this.iceServers);
     this.peerConnections[userId] = pc;
 
-    // Add our local tracks
     this.localStream.getTracks().forEach(track => {
       pc.addTrack(track, this.localStream);
     });
 
-    // ICE candidate handler
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         this.socketService.sendGroupCallIceCandidate(this.groupId, userId, event.candidate);
       }
     };
 
-    // Track handler
     pc.ontrack = (event) => {
       this.handleRemoteStream(userId, event.streams[0]);
     };

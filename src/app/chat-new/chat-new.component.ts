@@ -259,6 +259,23 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
   }
 
+  startGroupAudioCall(groupId: string) {
+    this.router.navigate(['/group-call', groupId], {
+      queryParams: { initiator: 'true', callType: 'audio' }
+    });
+  }
+
+  startGroupVideoCall(groupId: string) {
+    this.router.navigate(['/group-call', groupId], {
+      queryParams: { initiator: 'true', callType: 'video' }
+    });
+  }
+
+  joinGroupCall(groupId: string) {
+    if (this.activeGroupCalls[groupId]) {
+      this.router.navigate(['/group-call', groupId]);
+    }
+  }
 
   loadUsers() {
     this.userService.getAllUsersExceptCurrentUser().subscribe({
@@ -1006,23 +1023,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.isSidebarOpen = !this.isSidebarOpen;
     console.log(this.isSidebarOpen);
 
-  }
-  startGroupAudioCall(groupId: string) {
-    this.router.navigate(['/group-call', groupId], {
-      queryParams: { initiator: 'true', callType: 'audio' }
-    });
-  }
-
-  startGroupVideoCall(groupId: string) {
-    this.router.navigate(['/group-call', groupId], {
-      queryParams: { initiator: 'true', callType: 'video' }
-    });
-  }
-
-  joinGroupCall(groupId: string) {
-    if (this.activeGroupCalls[groupId]) {
-      this.router.navigate(['/group-call', groupId]);
-    }
   }
 
 }
