@@ -196,7 +196,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         }
       } catch (error) {
         console.error('Error handling answer:', error);
-        this.toastr.error(`Error handling answer: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       }
     });
 
