@@ -9,7 +9,7 @@
                             <img [src]="loginUserProfile" class="rounded-circle avatar-sm">
                         </button>
                         <div class="dropdown-menu dropdown-menu dropdown-menu-md p-2" ngbDropdownMenu>
-                            <a class="dropdown-item" (click)="navigateToChat()">Profile</a>
+                            <a class="dropdown-item">Profile</a>
                             <a class="dropdown-item" (click)="onLogoutClick()">Logout</a>
                         </div>
                     </div>
@@ -38,7 +38,7 @@
                                 aria-haspopup="true" aria-expanded="false" ngbDropdownToggle>
                                 <i class="fa-solid fa-ellipsis"></i> </button>
                             <div class="dropdown-menu dropdown-menu-end" ngbDropdownMenu>
-                                <a class="dropdown-item" (click)="navigateToChat()">Profile</a>
+                                <a class="dropdown-item" href="#">Profile</a>
                                 <a class="dropdown-item" href="javascript:void(0);">Edit</a>
                                 <a class="dropdown-item" href="javascript:void(0);">Add Contact</a>
                                 <a class="dropdown-item" href="javascript:void(0);">Setting</a>
@@ -66,7 +66,7 @@
                                             <li class="" *ngFor="let data of chatData"
                                                 [ngClass]="{'active': data.receiver?.username == username}">
                                                 <a href="javascript: void(0);" style="border: 0.5px solid #e2e5e8  ;"
-                                                    (click)="chatUsername(data.receiver?.username, data.receiver.avatar, data.receiver.isOnline, data._id, data.receiver._id)">
+                                                    (click)="startOrResumeChat(data.receiver?.username, data.receiver.avatar, data.receiver.isOnline, data._id, data.receiver._id)">
                                                     <div class="d-flex align-items-start">
                                                         <div
                                                             class="flex-shrink-0 user-img {{data.status}} align-self-center me-3">
@@ -136,7 +136,7 @@
                                             </div>
                                             <ul class="list-unstyled chat-list">
                                                 <li *ngFor="let group of groupChatData">
-                                                    <a href="javascript:void(0);" (click)="openGroupChat(group)"
+                                                    <a href="javascript:void(0);" (click)="openGroupConversation(group)"
                                                         style="border: 0.5px solid #e2e5e8">
                                                         <div class="d-flex align-items-start">
                                                             <div class="flex-shrink-0 user-img align-self-center me-3">
@@ -192,7 +192,7 @@
                                                     <ul class="list-unstyled chat-list">
                                                         <li>
                                                             <a href="javascript:void(0);"
-                                                                (click)="chatUsername(user.username, user.avatar, user.isOnline, user.conversationId, user._id)">
+                                                                (click)="startOrResumeChat(user.username, user.avatar, user.isOnline, user.conversationId, user._id)">
                                                                 <div class="d-flex align-items-start">
                                                                     <div
                                                                         class="flex-shrink-0 user-img align-self-center me-3">
@@ -338,72 +338,6 @@
 
 
             <div class="chat-window">
-                <div *ngIf="recordedVideoUrl">
-                    <h3>Recorded Video</h3>
-                    <video [src]="recordedVideoUrl" controls></video>
-                    <a [href]="recordedVideoUrl" download="combined-video.mp4">Download Combined Video</a>
-                </div>
-
-                <div class="call-container">
-                    <div *ngIf="callInProgress && callType==='video'"
-                        class="video-call-container position-relative text-center bg-dark p-3 rounded">
-                        <div class="d-flex justify-content-center gap-3">
-                            <div class="position-relative">
-                                <video #userVideo autoplay playsinline
-                                    class="remote-video rounded border shadow"></video>
-                            </div>
-                            <div class="position-relative">
-                                <video #myVideo autoplay playsinline class="local-video rounded border shadow"
-                                    muted></video>
-                            </div>
-                        </div>
-
-                        <div class="video-call-controls mt-3 d-flex justify-content-center gap-3">
-                            <button class="btn btn-secondary btn-sm" (click)="toggleVideo()">
-                                <i class="fa-solid"
-                                    [ngClass]="{'fa-video': isVideoEnabled, 'fa-video-slash': !isVideoEnabled}"></i>
-                            </button>
-
-                            <button class="btn btn-warning btn-sm" (click)="toggleMute()">
-                                <i class="fa-solid"
-                                    [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
-                            </button>
-
-                            <button class="btn btn-info btn-sm" (click)="toggleScreenShare()">
-                                <i class="fa-solid"
-                                    [ngClass]="{'fa-display': !isScreenSharing, 'fa-times-circle': isScreenSharing}"></i>
-                            </button>
-                            <button class="btn btn-danger btn-sm" (click)="endCall()">
-                                <i class="fa-solid fa-phone-slash"></i>
-                            </button>
-
-
-                        </div>
-
-                    </div>
-
-
-
-                    <div *ngIf="callType==='audio' && callInProgress"
-                        class="audio-call-container position-relative text-center bg-dark p-3 rounded">
-                        <div class="d-flex justify-content-center">
-                            <div class="audio-call-avatar">
-                                <i class="fa-solid fa-user-circle fa-5x text-light"></i>
-                            </div>
-                        </div>
-
-                        <div class="audio-call-controls mt-3 d-flex justify-content-center gap-3">
-                            <button class="btn btn-warning btn-sm" (click)="toggleMute()">
-                                <i class="fa-solid"
-                                    [ngClass]="{'fa-microphone': !isMuted, 'fa-microphone-slash': isMuted}"></i>
-                            </button>
-
-                            <button class="btn btn-danger btn-sm" (click)="endCall()">
-                                <i class="fa-solid fa-phone-slash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
                 <ngx-simplebar class="chat-conversation p-3">
                     <div #chatWindow>
                         <ul class="list-unstyled mb-0">

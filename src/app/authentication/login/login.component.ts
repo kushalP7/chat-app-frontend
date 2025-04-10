@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { SocketService } from 'src/app/core/services/socket.service';
 import { ToastrService } from 'ngx-toastr';
-
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
@@ -18,12 +17,13 @@ export class LoginComponent implements OnInit {
     formData: any = [];
 
     constructor(
-        private fb: FormBuilder, 
-        private router: Router, 
-        private authService: AuthService, 
+        private fb: FormBuilder,
+        private router: Router,
+        private authService: AuthService,
         private socketService: SocketService,
-        private toastr : ToastrService
+        private toastr: ToastrService
     ) { }
+
     ngOnInit(): void {
         this.loginForm = this.fb.group({
             email: ['', [Validators.required, Validators.email]],
@@ -45,11 +45,10 @@ export class LoginComponent implements OnInit {
                     this.socketService.connectWithToken();
                     this.router.navigate(['/chat']);
                 }
-                this.toastr.success('Login Successfully', '', {timeOut: 2000});
-
+                this.toastr.success('Login Successfully', '', { timeOut: 2000 });
             },
             error: (error) => {
-                this.toastr.error(error.error.message, '', {timeOut: 2000});            
+                this.toastr.error(error.error.message, '', { timeOut: 2000 });
             }
         });
     }

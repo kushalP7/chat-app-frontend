@@ -44,59 +44,11 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   activeGroupCalls: { [groupId: string]: boolean } = {};
   showDropdown = false;
   private callListenerSub: Subscription | undefined;
-
-
-
-
-  @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
-  @ViewChild("myVideo") myVideo!: ElementRef;
-  @ViewChild("userVideo") userVideo!: ElementRef;
-
+  callInProgress = false;
   receiverId!: string;
   callType: 'audio' | 'video' = 'video';
-  private myStream!: MediaStream;
-  private peerConnection!: RTCPeerConnection;
-  private servers = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun.l.google.com:5349" },
-      { urls: "stun:stun1.l.google.com:3478" },
-      { urls: "stun:stun1.l.google.com:5349" },
-      { urls: "stun:stun2.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:5349" },
-      { urls: "stun:stun3.l.google.com:3478" },
-      { urls: "stun:stun3.l.google.com:5349" },
-      { urls: "stun:stun4.l.google.com:19302" },
-      { urls: "stun:stun4.l.google.com:5349" },
-      {
-        urls: "stun:stun.l.google.com:19302",
-        credential: "kushal123",
-        username: "kushal123"
-      },
-      {
-        urls: "stun:stun.l.google.com:19302",
-        credential: "kushal124",
-        username: "kushal124"
-      }
-    ]
-  };
-  callInProgress = false;
-  isMuted: boolean = false;
-  private previousStreams: MediaStream[] = [];
-  isVideoEnabled: boolean = true;
 
-
-  private recorder!: MediaRecorder;
-  private recordedChunks: Blob[] = [];
-  recordedVideoUrl: string | null = null;
-
-  private combinedStream!: MediaStream;
-  isScreenSharing = false;
-  private screenStream: MediaStream | null = null;
-
+  @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
 
   constructor(
     public formBuilder: FormBuilder,
@@ -141,7 +93,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
             setTimeout(() => this.scrollToBottom(), 100);
           },
           error: (error) => {
-            console.log("Error fetching user:", error);
+            this.toastr.error(`Error fetching user: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
           }
         });
       }
@@ -154,7 +106,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.loadChatConversations();
     this.loadGroupConversations();
     this.loadUsers();
-    // this.listenForCalls();
     this.socketService.newMessageReceived().subscribe(message => {
       this.handleNewMessage(message);
     });
@@ -196,8 +147,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   ngOnDestroy() {
-    this.endCall();
-    window.removeEventListener('beforeunload', this.endCall.bind(this));
     this.callListenerSub?.unsubscribe();
   }
 
@@ -224,23 +173,20 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       this.userService.getUserById(data.from).subscribe({
         next: (res) => {
           const callerName = res.data.username || 'Unknown User';
-
           const accept = confirm(`${callerName} is calling you. Would you like to accept this ${data.callType} call?`);
-    
+
           if (accept) {
             this.callInProgress = true;
-
             this.callListenerSub?.unsubscribe();
-
             this.router.navigate(['/video-call', data.from], {
               queryParams: { callType: data.callType }
             });
           } else {
-            console.log('Call not accepted');
+            this.toastr.info('Call not accepted', '', { timeOut: 2000 });
           }
         },
-        error: (err) => {
-          console.error("Failed to fetch caller info:", err);
+        error: (error) => {
+          this.toastr.error(`Failed to fetch caller info: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
         }
       });
     });
@@ -283,7 +229,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         this.users = response.data;
       },
       error: (error) => {
-        this.toastr.error('Failed to load users', '', { timeOut: 2000 });
+        this.toastr.error(`Failed to load users: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       }
     });
   }
@@ -292,10 +238,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.socketService.disconnectSocket();
     this.authService.logout();
     this.toastr.success('Logout Successfully', '', { timeOut: 2000 });
-
   }
-
-
 
   loadChatConversations() {
     this.userService.getUserConversations().subscribe({
@@ -303,10 +246,9 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         this.chatData = response.data;
       },
       error: (error) => {
-        this.toastr.error('Failed to load group conversations', '', { timeOut: 2000 });
+        this.toastr.error(`Failed to load conversations: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
       }
     });
-
   }
 
   private loadGroupConversations() {
@@ -315,60 +257,57 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         this.groupChatData = response.data;
       },
       error: (error) => {
-        this.toastr.error('Failed to load group conversations', '', { timeOut: 2000 });
+        this.toastr.error(`Failed to load group conversations: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
       }
     });
   }
 
-  chatUsername(name: string, avatar: any, status: boolean, conversationId: string, receiverId: string) {
-
+  startOrResumeChat(name: string, avatar: any, status: boolean, conversationId: string, receiverId: string) {
     this.isGroupChat = false;
     this.receiverId = receiverId;
-
     this.username = name;
     this.userProfile = avatar;
     this.isStatus = status;
 
     if (!conversationId) {
       this.startNewChat(receiverId, name, avatar);
-
     } else {
       this.conversationId = conversationId;
       this.loadMessages(this.conversationId);
       this.socketService.markMessagesAsRead(conversationId);
     }
     this.isSidebarOpen = !this.isSidebarOpen;
-
   }
+
   startNewChat(userId: string, username: string, avatar: string) {
     this.userService.createOrGetConversation(userId).subscribe({
-      next: response => {
+      next: (response) => {
         if (response && response.conversationId) {
           this.conversationId = response.conversationId;
           this.socketService.joinConversation(response.conversationId);
           this.username = username;
           this.userProfile = avatar;
-
           this.loadMessages(this.conversationId);
           this.cdr.detectChanges();
-
         } else {
           this.toastr.error('Failed to create or retrieve conversation', '', { timeOut: 2000 });
         }
       },
+      error: (error) => {
+        this.toastr.error(`Failed to create or retrieve conversation: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
+      }
     });
   }
 
-  openGroupChat(group: any) {
+  openGroupConversation(group: any) {
     this.isGroupChat = true;
     this.groupname = group.groupName;
-    this.groupAvatar = group.groupAvatar ? group.groupAvatar : 'assets/default-avatar.jpg';;
+    this.groupAvatar = group.groupAvatar ? group.groupAvatar : '';;
     this.conversationId = group._id;
     this.groupMembers = group.members;
     this.loadMessages(this.conversationId);
     this.socketService.markMessagesAsRead(this.conversationId);
     this.isSidebarOpen = !this.isSidebarOpen;
-
   }
 
   typing(): void {
@@ -429,8 +368,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       setTimeout(() => this.scrollToBottom(), 100);
       this.formData.reset();
     }
-
-
   }
 
   removeSelectedImage() {
@@ -467,7 +404,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       this.socketService.joinGroup(conversationId);
       this.userService.getMessages(conversationId).subscribe(response => {
         if (response.success) {
-
           this.messageArray = response.data.map((message: any) => {
             const sender = this.groupMembers.find(member => member._id === message.userId);
             if (sender) {
@@ -502,22 +438,23 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       this.selectedFile = target.files[0];
     }
   }
-  
+
   toggleDropdown() {
     this.showDropdown = !this.showDropdown;
   }
+
   selectUser(user: any) {
     if (!this.selectedMembers.find(u => u._id === user._id)) {
       this.selectedMembers.push(user);
       this.groupForm.get('groupMembers')?.setValue(this.selectedMembers.map(u => u._id));
     }
   }
-  
+
   removeUser(user: any) {
     this.selectedMembers = this.selectedMembers.filter(u => u._id !== user._id);
     this.groupForm.get('groupMembers')?.setValue(this.selectedMembers.map(u => u._id));
   }
-  
+
   isSelected(user: any): boolean {
     return !!this.selectedMembers.find(u => u._id === user._id);
   }
@@ -547,15 +484,15 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     }
 
     this.userService.createGroup(formData).subscribe({
-      next: (response) => {
+      next: () => {
         this.toastr.success('Group created successfully!', '', { timeOut: 2000 });
         this.loadGroupConversations();
         this.showGroupForm = false;
         this.groupForm.reset();
         this.selectedMembers = [];
       },
-      error: () => {
-        this.toastr.error('Failed to create group.', '', { timeOut: 2000 });
+      error: (error) => {
+        this.toastr.error(`Failed to create group: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
       }
     });
   }
@@ -628,9 +565,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.chatData = updateConversations(this.chatData);
     this.groupChatData = updateConversations(this.groupChatData);
     this.cdr.detectChanges();
-
   }
-
 
   handleMessagesMarkedRead(data: { conversationId: string, userId: string }) {
     const updateUnreadCount = (conversations: any[]) => {
@@ -642,9 +577,9 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
     updateUnreadCount(this.chatData);
     updateUnreadCount(this.groupChatData);
-
     this.cdr.detectChanges();
   }
+
   onCopyMessage(msg: any) {
     if (msg.type === 'image') {
       fetch(msg.fileUrl)
@@ -665,8 +600,8 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
                   const item = new ClipboardItem({ 'image/png': pngBlob });
                   navigator.clipboard.write([item]).then(() => {
                     this.toastr.info('Image copied to clipboard!', '', { timeOut: 500 });
-                  }).catch((err) => {
-                    console.error('Failed to copy image to clipboard: ', err);
+                  }).catch((error) => {
+                    this.toastr.error(`Failed to copy image to clipboard: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
                   });
                 }
               }, 'image/png');
@@ -677,354 +612,26 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
             const item = new ClipboardItem({ 'image/png': blob });
             navigator.clipboard.write([item]).then(() => {
               this.toastr.info('Image copied to clipboard!', '', { timeOut: 500 });
-            }).catch((err) => {
-              console.error('Failed to copy image to clipboard: ', err);
+            }).catch((error) => {
+              this.toastr.error(`Failed to copy image to clipboard: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
             });
           }
         })
-        .catch((err) => {
-          console.error('Error fetching the image: ', err);
+        .catch((error) => {
+          this.toastr.error(`Error fetching the image: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
         });
     } else {
       const messageContent = msg.content;
       navigator.clipboard.writeText(messageContent).then(() => {
         this.toastr.info('Message copied!', '', { timeOut: 500 });
-      }).catch((err) => {
-        console.error('Failed to copy message: ', err);
+      }).catch((error) => {
+        this.toastr.error(`Failed to copy message: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
       });
     }
-  }
-
-
-  async callAudioUser() {
-    this.callInProgress = true;
-
-    try {
-      this.callType = 'audio';
-      this.myStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: false
-      });
-      this.setupAudioElements();
-      this.initializePeerConnection();
-
-      const offer = await this.peerConnection.createOffer();
-      await this.peerConnection.setLocalDescription(offer);
-
-      this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'audio');
-    } catch (error) {
-      console.error('Error starting audio call:', error);
-      this.toastr.error('Failed to start audio call');
-      this.callInProgress = false;
-    }
-  }
-
-  async callVideoUser() {
-    this.callInProgress = true;
-    this.callType = 'video';
-    try {
-      this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-      this.setupVideoElements();
-      this.initializePeerConnection();
-
-      // this.startRecording(this.myStream, 'myVideo');
-      this.startRecording();
-
-      const offer = await this.peerConnection.createOffer();
-      await this.peerConnection.setLocalDescription(offer);
-
-      this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
-    } catch (error) {
-      console.error('Error starting video call:', error);
-      this.toastr.error('Failed to start video call');
-      this.callInProgress = false;
-    }
-  }
-
-  private startRecording() {
-    const recorder = new MediaRecorder(this.combinedStream);
-    const chunks: Blob[] = [];
-
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunks.push(event.data);
-      }
-    };
-
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      this.recordedVideoUrl = url;
-      this.recordedChunks = chunks;
-    };
-
-    recorder.start();
-    this.recorder = recorder;
-  }
-
-  stopRecording() {
-    if (this.recorder) {
-      this.recorder.stop();
-    }
-  }
-
-  async toggleScreenShare() {
-    if (this.isScreenSharing) {
-      await this.stopScreenShare();
-    } else {
-      await this.startScreenShare();
-    }
-  }
-
-  async startScreenShare() {
-    try {
-      this.screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true
-      });
-
-      const videoSender = this.peerConnection.getSenders().find(
-        s => s.track?.kind === 'video'
-      );
-
-      if (videoSender) {
-        const screenTrack = this.screenStream.getVideoTracks()[0];
-        await videoSender.replaceTrack(screenTrack);
-
-        if (this.myVideo?.nativeElement) {
-          this.myVideo.nativeElement.srcObject = this.screenStream;
-        }
-
-        this.isScreenSharing = true;
-
-        screenTrack.onended = () => {
-          this.stopScreenShare();
-        };
-      }
-    } catch (error) {
-      console.error('Error starting screen share:', error);
-      this.toastr.error('Failed to start screen sharing');
-    }
-  }
-
-  async stopScreenShare() {
-    if (!this.isScreenSharing) return;
-
-    try {
-      this.screenStream?.getTracks().forEach(track => track.stop());
-
-      const videoSender = this.peerConnection.getSenders().find(
-        s => s.track?.kind === 'video'
-      );
-
-      if (videoSender && this.myStream) {
-        const cameraTrack = this.myStream.getVideoTracks()[0];
-        if (cameraTrack) {
-          await videoSender.replaceTrack(cameraTrack);
-        }
-
-        if (this.myVideo?.nativeElement) {
-          this.myVideo.nativeElement.srcObject = this.myStream;
-        }
-      }
-
-      this.isScreenSharing = false;
-      this.screenStream = null;
-    } catch (error) {
-      console.error('Error stopping screen share:', error);
-    }
-  }
-
-
-
-  private setupAudioElements() {
-    if (this.myStream) {
-      const audioElement = new Audio();
-      audioElement.srcObject = this.myStream;
-      audioElement.muted = true;
-      audioElement.play();
-    }
-  }
-
-  private setupVideoElements() {
-    if (this.myVideo?.nativeElement) {
-      this.myVideo.nativeElement.srcObject = this.myStream;
-      this.myVideo.nativeElement.muted = true;
-      this.myVideo.nativeElement.play();
-    }
-  }
-
-  private listenForCalls() {
-    this.socketService.onIncomingCall().subscribe(async (data: any) => {
-      if (!data.offer) return;
-      this.callType = data.callType;
-      const callType = data.callType === "video" ? "Video Call" : "Audio Call";
-      console.log('data', data);
-
-      if (confirm(`${data.from} is calling. Accept ${callType}?`)) {
-        this.callInProgress = true;
-        try {
-          this.myStream = await navigator.mediaDevices.getUserMedia(
-            data.callType === "video" ? { video: true, audio: true } : { audio: true, video: false }
-          );
-
-          if (data.callType === "video" && this.callType === 'video') {
-            this.setupVideoElements();
-          } else {
-            this.setupAudioElements();
-          }
-
-          this.initializePeerConnection();
-          await this.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-          const answer = await this.peerConnection.createAnswer();
-          await this.peerConnection.setLocalDescription(answer);
-
-          this.socketService.answerCall(data.from, answer);
-        } catch (error) {
-          console.error('Error answering call:', error);
-          this.callInProgress = false;
-        }
-      }
-    });
-
-    this.socketService.onCallAccepted().subscribe(async (data: any) => {
-      try {
-        if (data.answer && this.peerConnection) {
-          await this.peerConnection.setRemoteDescription(data.answer);
-        }
-      } catch (error) {
-        console.error('Error handling answer:', error);
-      }
-    });
-
-    this.socketService.onIceCandidate().subscribe((candidate: RTCIceCandidate) => {
-      if (candidate && this.peerConnection) {
-        this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      }
-    });
-  }
-
-  private initializePeerConnection() {
-    if (this.peerConnection) {
-      this.peerConnection.getSenders().forEach(sender => sender.track?.stop());
-      this.peerConnection.close();
-    }
-    this.peerConnection = new RTCPeerConnection(this.servers);
-    this.previousStreams.forEach(stream => {
-      stream.getTracks().forEach(track => track.stop());
-    });
-    this.previousStreams = [];
-
-    this.myStream.getTracks().forEach(track => {
-      this.peerConnection.addTrack(track, this.myStream);
-    });
-
-    this.previousStreams.push(this.myStream);
-
-    this.peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        this.socketService.sendIceCandidate(this.receiverId, event.candidate);
-      }
-    };
-
-    this.peerConnection.ontrack = (event) => {
-      if (event.track.kind === "video") {
-        if (!this.userVideo?.nativeElement.srcObject) {
-          this.userVideo.nativeElement.srcObject = new MediaStream();
-        }
-        const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
-        remoteStream.addTrack(event.track);
-      }
-
-      if (event.track.kind === "audio") {
-        const audioElement = this.userVideo?.nativeElement || new Audio();
-        if (!audioElement.srcObject) {
-          audioElement.srcObject = new MediaStream();
-        }
-        (audioElement.srcObject as MediaStream).addTrack(event.track);
-        audioElement.play();
-      }
-    };
-  }
-
-
-  toggleVideo() {
-    this.isVideoEnabled = !this.isVideoEnabled;
-    this.myStream.getVideoTracks().forEach(track => { track.enabled = this.isVideoEnabled });
-  }
-
-  // async toggleVideo() {
-  //   this.isVideoEnabled = !this.isVideoEnabled;
-
-  //   if (this.isVideoEnabled) {
-  //     try {
-  //       this.myStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  //       this.myStream.getVideoTracks().forEach(track => {
-  //         track.enabled = true;
-  //       });
-
-  //       if (this.myVideo?.nativeElement) {
-  //         this.myVideo.nativeElement.srcObject = this.myStream;
-  //       }
-
-  //       this.myStream.getTracks().forEach(track => {
-  //         this.peerConnection.addTrack(track, this.myStream);
-  //       });
-  //     } catch (error) {
-  //       console.error('Error re-acquiring video stream:', error);
-  //       this.toastr.error('Failed to turn video back on');
-  //       this.isVideoEnabled = false;
-  //     }
-  //   } else {
-  //     this.myStream.getVideoTracks().forEach(track => {
-  //       track.enabled = false;
-  //     });
-  //   }
-  // }
-
-  toggleMute() {
-    this.isMuted = !this.isMuted;
-    this.myStream.getAudioTracks().forEach(track => {
-      track.enabled = !this.isMuted;
-    });
-  }
-
-  endCall() {
-    if (this.isScreenSharing) {
-      this.stopScreenShare();
-    }
-    if (this.myStream) {
-      this.myStream.getTracks().forEach(track => track.stop());
-      this.myStream = null!;
-    }
-    if (this.peerConnection) {
-      this.peerConnection.getSenders().forEach(sender => {
-        if (sender.track) sender.track.stop();
-      });
-      this.peerConnection.close();
-      this.peerConnection = null!;
-    }
-
-    if (this.myVideo?.nativeElement) {
-      this.myVideo.nativeElement.srcObject = null;
-    }
-    if (this.userVideo?.nativeElement) {
-      this.userVideo.nativeElement.srcObject = null;
-    }
-    this.callInProgress = false;
-  }
-
-  navigateToChat() {
-    this.router.navigate(['/test']);
   }
 
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen;
-    console.log(this.isSidebarOpen);
-
   }
 
 }
-
-

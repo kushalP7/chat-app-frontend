@@ -1,8 +1,9 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AuthService } from '../core/services/auth.service';
 import { SocketService } from '../core/services/socket.service';
 import { ToastrService } from 'ngx-toastr';
-import { ActivatedRoute, Router, RouteReuseStrategy } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { UserService } from '../core/services/user.service';
 
 @Component({
   selector: 'app-video-call',
@@ -18,7 +19,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   isVideoEnabled: boolean = true;
   callInProgress = false;
   isMuted: boolean = false;
-
   callType: 'audio' | 'video' = 'video';
   private myStream!: MediaStream;
   private peerConnection!: RTCPeerConnection;
@@ -57,12 +57,20 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   isRecording = false;
   recordedVideoUrl: string | null = null;
 
+
+  localVideoActive = false;
+  remoteVideoActive = false;
+  localUserAvatar!: string;
+  remoteUserAvatar!: string;
+  remoteUserName!: string;
+
   constructor(
     public authService: AuthService,
     private socketService: SocketService,
     private toastr: ToastrService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private userService: UserService,
   ) { }
 
 
@@ -79,11 +87,33 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }
     }
     this.listenForCalls();
+    this.loadRemoteUserInfo(this.receiverId);
+    this.localUserAvatar = this.authService.getLoggedInUser().avatar
   }
 
   ngOnDestroy() {
     this.endCall();
     window.removeEventListener('beforeunload', this.endCall.bind(this));
+  }
+
+  onRemoteVideoPlaying() {
+    this.remoteVideoActive = true;
+  }
+
+  onLocalVideoPlaying() {
+    this.localVideoActive = true;
+  }
+
+  private loadRemoteUserInfo(userId: string) {
+    this.userService.getUserById(userId).subscribe({
+      next: (user: any) => {
+        this.remoteUserAvatar = user.data.avatar;
+        this.remoteUserName = user.data.username;
+      },
+      error: (error) => {
+        this.toastr.error(`Failed to load local user info: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
+      }
+    });
   }
 
   async callVideoUser() {
@@ -102,7 +132,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'video');
     } catch (error) {
       console.error('Error starting video call:', error);
-      this.toastr.error('Failed to start video call');
+      this.toastr.error(`Failed to start video call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       this.callInProgress = false;
       this.router.navigate(['/chat'])
     }
@@ -124,7 +154,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.socketService.callUser(this.receiverId, offer, this.authService.getLoggedInUser()._id, 'audio');
     } catch (error) {
       console.error('Error starting audio call:', error);
-      this.toastr.error('Failed to start audio call');
+      this.toastr.error(`Failed to start audio call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       this.callInProgress = false;
     }
   }
@@ -154,6 +184,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         this.socketService.answerCall(data.from, answer);
       } catch (error) {
         console.error('Error answering call:', error);
+        this.toastr.error(`Error answering call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
         this.callInProgress = false;
       }
     });
@@ -165,6 +196,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         }
       } catch (error) {
         console.error('Error handling answer:', error);
+        this.toastr.error(`Error handling answer: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       }
     });
 
@@ -222,6 +254,10 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         const remoteStream = this.userVideo.nativeElement.srcObject as MediaStream;
 
         remoteStream.addTrack(event.track);
+        this.remoteVideoActive = true;
+        event.track.onended = () => {
+          this.remoteVideoActive = false;
+        };
       }
 
       if (event.track.kind === "audio") {
@@ -234,6 +270,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }
     };
   }
+
   toggleMute() {
     this.isMuted = !this.isMuted;
     this.myStream.getAudioTracks().forEach(track => {
@@ -244,6 +281,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   toggleVideo() {
     this.isVideoEnabled = !this.isVideoEnabled;
     this.myStream.getVideoTracks().forEach(track => { track.enabled = this.isVideoEnabled });
+    this.localVideoActive = this.isVideoEnabled;
   }
 
   async toggleScreenShare() {
@@ -267,7 +305,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
-      }) ;
+      });
 
       const videoSender = this.peerConnection.getSenders().find(
         s => s.track?.kind === 'video'
@@ -289,7 +327,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error starting screen share:', error);
-      this.toastr.error('Failed to start screen sharing');
+      this.toastr.error(`Failed to start screen sharing: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
     }
   }
 
@@ -318,6 +356,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.screenStream = null;
     } catch (error) {
       console.error('Error stopping screen share:', error);
+      this.toastr.error(`Error stopping screen share: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
     }
   }
 
@@ -355,7 +394,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       .catch(error => console.log("Error releasing media devices:", error));
     this.callInProgress = false;
     this.router.navigate(['/chat']);
-
   }
 
   // async startScreenRecording() {
@@ -410,6 +448,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   //     this.toastr.error('Recording could not be started');
   //   }
   // }
+
   async startScreenRecording() {
     try {
       const combinedStream = new MediaStream();
@@ -423,7 +462,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
           noiseSuppression: true
         }
       });
-
 
       screenStream.getTracks().forEach(track => {
         combinedStream.addTrack(track.clone());
@@ -459,14 +497,12 @@ export class VideoCallComponent implements OnInit, OnDestroy {
 
     } catch (error) {
       console.error('Screen recording failed:', error);
-      this.toastr.error('Screen recording could not be started');
+      this.toastr.error(`Screen recording could not be started: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
     }
   }
 
-
   private downloadRecording() {
     if (!this.recordedVideoUrl) return;
-
     const a = document.createElement('a');
     a.href = this.recordedVideoUrl;
     a.download = `call-recording-${new Date().toISOString()}.webm`;
@@ -477,9 +513,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     this.recordedVideoUrl = null;
   }
 
-
-
-
   stopScreenRecording() {
     if (this.mediaRecorder && this.isRecording) {
       this.mediaRecorder.stop();
@@ -487,7 +520,5 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.toastr.success('Recording saved');
     }
   }
-
-
 
 }

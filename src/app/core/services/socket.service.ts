@@ -4,8 +4,6 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
-
-import { Router } from '@angular/router';
 @Injectable({
   providedIn: 'root'
 })
@@ -15,11 +13,9 @@ export class SocketService {
     private http: HttpClient,
     private authService: AuthService,
     private toastr: ToastrService,
-    private router: Router
 
   ) {
     this.autoReconnect();
-
   }
 
   connectWithToken() {
@@ -30,7 +26,6 @@ export class SocketService {
     }
 
     this.socket.disconnect();
-
     this.socket.io.opts.query = { token };
     this.socket.connect();
   }
@@ -38,7 +33,6 @@ export class SocketService {
   autoReconnect() {
     const token = this.authService.getToken();
     if (token) {
-      console.log("Attempting auto-reconnect...");
       this.connectWithToken();
     }
   }
@@ -46,7 +40,6 @@ export class SocketService {
   joinConversation(conversationId: string): void {
     this.socket.emit('joinConversation', conversationId);
   }
-
 
   uploadFile(file: File) {
     const formData = new FormData();
@@ -57,7 +50,6 @@ export class SocketService {
   sendMessage(messageData: { user: string, conversationId: string, content: string, fileUrl?: string, type: string }) {
     this.socket.emit('sendMessage', messageData);
   }
-
 
   typing(conversationId: string, userId: string): void {
     this.socket.emit('typing', conversationId, userId);
@@ -85,18 +77,15 @@ export class SocketService {
 
   disconnectSocket() {
     this.socket.disconnect();
-    console.log("WebSocket disconnected on logout.");
   }
 
   callUser(userToCall: string, signalData: any, from: string, callType: 'audio' | 'video') {
     this.socket.emit("callUser", { userToCall, signalData, from, callType });
   }
 
-
   answerCall(to: string, signal: any) {
     this.socket.emit("answerCall", { to, signal });
   }
-
 
   onIncomingCall() {
     return this.socket.fromEvent("incomingCall");
@@ -106,7 +95,6 @@ export class SocketService {
     return this.socket.fromEvent("callAccepted");
   }
 
-
   sendIceCandidate(userToCall: string, candidate: any) {
     this.socket.emit("iceCandidate", { userToCall, candidate });
   }
@@ -114,12 +102,15 @@ export class SocketService {
   onIceCandidate() {
     return this.socket.fromEvent("iceCandidate");
   }
+
   joinGroup(conversationId: string): void {
     this.socket.emit('joinConversation', conversationId);
   }
+
   sendGroupMessage(messageData: { user: string, conversationId: string, content: string, fileUrl?: string, type: string }) {
     this.socket.emit('sendMessage', messageData);
   }
+
   newGroupMessageReceived() {
     return this.socket.fromEvent('receiveMessage');
   }

@@ -15,7 +15,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   @ViewChild("remoteVideos") remoteVideosContainer!: ElementRef;
 
   groupId!: string;
-  participants: { userId: string, username?: string, stream: MediaStream }[] = [];
+  participants: { userId: string, username?: string, userAvatar?:string, stream: MediaStream }[] = [];
   localStream!: MediaStream;
   peerConnections: { [key: string]: RTCPeerConnection } = {};
   isCallInitiator = false;
@@ -78,7 +78,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       this.setupSocketListeners();
     } catch (error) {
       console.error('Error initializing group call:', error);
-      this.toastr.error('Failed to start group call');
+      this.toastr.error(`Failed to start group call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       this.router.navigate(['/chat']);
     }
   }
@@ -103,33 +103,6 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   }
 
   private setupSocketListeners() {
-    // this.socketService.onGroupCallParticipantJoined().subscribe(async (data: any) => {
-    //   const { userId } = data;
-    //   if (userId === this.authService.getLoggedInUser()._id) return;
-
-    //   const pc = new RTCPeerConnection(this.iceServers);
-    //   this.peerConnections[userId] = pc;
-
-    //   this.localStream.getTracks().forEach(track => {
-    //     pc.addTrack(track, this.localStream);
-    //   });
-
-    //   pc.onicecandidate = (event) => {
-    //     if (event.candidate) {
-    //       this.socketService.sendGroupCallIceCandidate(this.groupId, userId, event.candidate);
-    //     }
-    //   };
-
-    //   pc.ontrack = (event) => {
-    //     this.handleRemoteStream(userId, event.streams[0]);
-    //   };
-
-    //   if (this.isCallInitiator) {
-    //     const offer = await pc.createOffer();
-    //     await pc.setLocalDescription(offer);
-    //     this.socketService.sendGroupCallOffer(this.groupId, userId, offer);
-    //   }
-    // });
     this.socketService.onGroupCallParticipantJoined().subscribe(async (data: any) => {
       const { userId } = data;
       if (userId === this.authService.getLoggedInUser()._id) return;
@@ -149,30 +122,6 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       }
     });
 
-    // this.socketService.onGroupCallOffer().subscribe(async (data: any) => {
-    //   const { fromUserId, offer } = data;
-    //   const pc = this.peerConnections[fromUserId] || new RTCPeerConnection(this.iceServers);
-    //   this.peerConnections[fromUserId] = pc;
-
-    //   this.localStream.getTracks().forEach(track => {
-    //     pc.addTrack(track, this.localStream);
-    //   });
-
-    //   pc.onicecandidate = (event) => {
-    //     if (event.candidate) {
-    //       this.socketService.sendGroupCallIceCandidate(this.groupId, fromUserId, event.candidate);
-    //     }
-    //   };
-
-    //   pc.ontrack = (event) => {
-    //     this.handleRemoteStream(fromUserId, event.streams[0]);
-    //   };
-
-    //   await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    //   const answer = await pc.createAnswer();
-    //   await pc.setLocalDescription(answer);
-    //   this.socketService.sendGroupCallAnswer(this.groupId, fromUserId, answer);
-    // });
     this.socketService.onGroupCallOffer().subscribe(async (data: any) => {
       const { fromUserId, offer } = data;
 
@@ -206,10 +155,6 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       }
     });
 
-    // this.socketService.onGroupCallParticipantLeft().subscribe((data: any) => {
-    //   const { userId } = data;
-    //   this.removeParticipant(userId);
-    // });
     this.socketService.onGroupCallParticipantLeft().subscribe((data: any) => {
       const { userId } = data;
 
@@ -219,7 +164,6 @@ export class GroupCallComponent implements OnInit, OnDestroy {
           delete this.peerConnections[peerId];
         }
       });
-
       this.participants = this.participants.filter(p => p.userId !== userId);
     });
   }
@@ -290,8 +234,8 @@ export class GroupCallComponent implements OnInit, OnDestroy {
           participant.username = userData.data.username;
         }
       },
-      error: (err) => {
-        console.warn(`Failed to fetch username for userId: ${userId}`, err);
+      error: (error) => {
+        this.toastr.warning(`Failed to fetch username for userId: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       }
     });
   }
@@ -315,7 +259,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       this.screenStream.getVideoTracks()[0].onended = () => this.stopScreenShare();
     } catch (error) {
       console.error('Error starting screen share:', error);
-      this.toastr.error('Failed to start screen sharing');
+      this.toastr.error(`Failed to start screen sharing: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
     }
   }
 

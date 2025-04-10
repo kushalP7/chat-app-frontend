@@ -21,6 +21,7 @@ export class RegisterComponent implements OnInit {
     private authService: AuthService,
     private toastr: ToastrService
   ) { }
+
   ngOnInit(): void {
     this.registerForm = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
@@ -52,26 +53,21 @@ export class RegisterComponent implements OnInit {
     formData.append('username', this.registerForm.get('username')?.value);
     formData.append('email', this.registerForm.get('email')?.value);
     formData.append('password', this.registerForm.get('password')?.value);
-    
+
     if (this.avatarFile) {
-      formData.append('image', this.avatarFile);  
+      formData.append('image', this.avatarFile);
     }
 
-    this.authService.register(formData as any).subscribe(
-      response => {
+    this.authService.register(formData as any).subscribe({
+      next: () => {
         this.router.navigate(['auth/login']);
         this.toastr.success('Registered Successfully', '', { timeOut: 2000 });
       },
-      error => {
-        console.log(error);
-        this.toastr.error(error.error.message, '', {timeOut: 2000});            
-
-        
-      }
-
+      error: (error) => {
+        this.toastr.error(error.error.message, '', { timeOut: 2000 });
+      },
+    }
     )
-
-
   }
 
   hasError(controlName: string, errorName: string): boolean {

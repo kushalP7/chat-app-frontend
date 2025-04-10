@@ -1,11 +1,20 @@
 <div class="container-fluid video-call-container" *ngIf="callInProgress">
     <div class="video-grid">
-        <div class="remote-video-container">
-            <video #userVideo autoplay playsinline class="remote-video"></video>
-        </div>
 
+        <div class="remote-video-container">
+            <video #userVideo autoplay playsinline class="remote-video" (playing)="onRemoteVideoPlaying()"></video>
+            <div class="profile-fallback" *ngIf="!remoteVideoActive">
+                <img [src]="remoteUserAvatar" alt="User profile" class="profile-image">
+                <div class="profile-name">{{ remoteUserName }}</div>
+            </div>
+        </div>
+    
         <div class="local-video-container" id="localVideo">
-            <video #myVideo autoplay playsinline class="local-video" muted></video>
+            <video #myVideo autoplay playsinline class="local-video" muted  (playing)="onLocalVideoPlaying()"></video>
+            <div class="profile-fallback" *ngIf="!localVideoActive">
+                <img [src]="localUserAvatar" alt="Your profile" class="profile-image">
+                <div class="profile-name">You</div>
+            </div>
         </div>
     </div>
     <div class="call-controls">

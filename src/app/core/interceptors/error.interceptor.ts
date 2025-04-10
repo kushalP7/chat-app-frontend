@@ -8,7 +8,6 @@ import { ToastrService } from 'ngx-toastr';
 export class ErrorInterceptor implements HttpInterceptor {
   constructor (
     private toastr : ToastrService
-
   ){
 
   }
@@ -46,10 +45,7 @@ export class ErrorInterceptor implements HttpInterceptor {
             }
           }
         }
-
-        console.log('errorMessage',errorMessage);
-        this.toastr.error(error.message, '', {timeOut: 2000});            
-
+        this.toastr.error(errorMessage, '', {timeOut: 2000});            
         return throwError(errorMessage);
       })
     );
