@@ -21,7 +21,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   userProfile: string = '';
   loginUserProfile: string = this.authService.getLoggedInUser().avatar;
   groupAvatar: string = '';
-  isStatus: boolean = false;
+  isOnline: boolean = false;
   activeSection: 'chat' | 'groups' | 'contacts' = 'chat';
   messageArray: Array<{ userId: any, content?: string, fileUrl?: string, type: string, createdAt: string, senderName?: string }> = [];
   groupMembers!: any[];
@@ -46,8 +46,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   private callListenerSub: Subscription | undefined;
   callInProgress = false;
   receiverId!: string;
-  callType: 'audio' | 'video' = 'video';
-
+  callType: 'audio' | 'video' = 'video';  
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
 
   constructor(
@@ -96,6 +95,12 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
             this.toastr.error(`Error fetching user: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
           }
         });
+      }
+    });
+
+    this.socketService.receivedTyping().subscribe(data => {
+      if (data.userId !== this.authService.getLoggedInUser()._id) {
+        this.isTyping = data.isTyping;
       }
     });
   }
@@ -154,8 +159,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     if (this.chatWindow)
       this.scrollToBottom();
   }
-
-
   private setupCallNotifications() {
     this.callListenerSub = this.socketService.onIncomingCall().subscribe(async (data: any) => {
       const myUserId = this.authService.getLoggedInUser()._id;
@@ -262,12 +265,12 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
   }
 
-  startOrResumeChat(name: string, avatar: any, status: boolean, conversationId: string, receiverId: string) {
+  startOrResumeChat(name: string, avatar: any, isOnline: boolean, conversationId: string, receiverId: string) {
     this.isGroupChat = false;
     this.receiverId = receiverId;
     this.username = name;
     this.userProfile = avatar;
-    this.isStatus = status;
+  this.isOnline = isOnline;
 
     if (!conversationId) {
       this.startNewChat(receiverId, name, avatar);
@@ -316,7 +319,10 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   sendMessage() {
-    this.message = this.formData.get('message')!.value;
+    this.message = this.formData.get('message')!.value?.trim();
+    if (!this.message && !this.file) {
+      return;
+    }
     const loggedInUser = this.authService.getLoggedInUser();
 
     const messageData: any = {

@@ -78,7 +78,6 @@
                                                                 <span class="user-status"
                                                                     [ngClass]="{ 'online': data.receiver.isOnline === true, 'offline': data.receiver.isOnline === false }">
                                                                 </span>
-
                                                             </div>
                                                             <div class="avatar-sm align-self-center"
                                                                 *ngIf="!data.receiver.avatar">
@@ -263,10 +262,10 @@
                                         style="text-decoration: none;" class="text-dark">{{username}}</a></h5>
 
                                 <p class="text-muted text-truncate mb-0">
-                                    <i class="fa-solid fa-circle fa-2xs "
-                                        [ngClass]="{ 'text-success': isStatus === true,  'text-muted': isStatus === false }">
-                                    </i>
-                                    {{ isStatus === true ? 'Online' : 'Offline' }}
+                                      <span [ngClass]="isOnline ? 'text-success' : 'text-muted'">
+                                        <i class="fa-solid fa-circle fa-2xs"></i>
+                                        {{ isOnline ? (isTyping ? 'Typing...' : 'Online') : 'Offline' }}
+                                      </span>
                                 </p>
 
                             </div>
@@ -284,15 +283,15 @@
                     </div>
                     <div class="col-xl-8 col-8">
                         <ul class="list-inline user-chat-nav text-end mb-0">
-                            <li class="list-inline-item">
-                                <button *ngIf="!isGroupChat && userProfile" class="btn nav-btn"
+                            <li class="list-inline-item" *ngIf="!isGroupChat && userProfile">
+                                <button class="btn nav-btn"
                                     (click)="startAudioCall(this.receiverId)">
                                     <i class="fa-solid fa-phone"></i>
                                 </button>
                             </li>
 
-                            <li class="list-inline-item">
-                                <button *ngIf="!isGroupChat && userProfile" class="btn nav-btn"
+                            <li class="list-inline-item" *ngIf="!isGroupChat && userProfile" >
+                                <button class="btn nav-btn"
                                     (click)="startVideoCall(this.receiverId)">
                                     <i class="fa-solid fa-video"></i>
                                 </button>
@@ -431,7 +430,7 @@
 
 
                 <input type="text" formControlName="message" class="form-control rounded-pill me-2"
-                    placeholder="Type a message...">
+                    placeholder="Type a message..." (keypress)="typing()">
 
                 <input type="file" #fileInput (change)="handleFileUpload($event)" class="d-none"
                     accept="image/*,application/pdf,video/*,audio/*">

@@ -102,6 +102,17 @@ export class SocketService {
   onIceCandidate() {
     return this.socket.fromEvent("iceCandidate");
   }
+  endCall(to: string) {
+    this.socket.emit("endCall", { to });
+  }
+  
+  onCallEnded() {
+    return this.socket.fromEvent("callEnded");
+  }
+  
+  onCallRejected() {
+    return this.socket.fromEvent("callRejected");
+  }
 
   joinGroup(conversationId: string): void {
     this.socket.emit('joinConversation', conversationId);
