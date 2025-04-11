@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
+import { Observable } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
@@ -102,16 +103,12 @@ export class SocketService {
   onIceCandidate() {
     return this.socket.fromEvent("iceCandidate");
   }
-  endCall(to: string) {
-    this.socket.emit("endCall", { to });
+  endCall(receiverId: string) {
+    this.socket.emit('call-ended', { to: receiverId });
   }
   
   onCallEnded() {
     return this.socket.fromEvent("callEnded");
-  }
-  
-  onCallRejected() {
-    return this.socket.fromEvent("callRejected");
   }
 
   joinGroup(conversationId: string): void {

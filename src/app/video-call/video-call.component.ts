@@ -4,7 +4,6 @@ import { SocketService } from '../core/services/socket.service';
 import { ToastrService } from 'ngx-toastr';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../core/services/user.service';
-import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-video-call',
@@ -57,11 +56,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   private recordedChunks: Blob[] = [];
   isRecording = false;
   recordedVideoUrl: string | null = null;
-  private destroy$ = new Subject<void>();
-  private callStartTime!: Date;
-  private callDuration = 0;
-  private callTimer: any;
-
 
   localVideoActive = false;
   remoteVideoActive = false;
@@ -94,34 +88,11 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     this.listenForCalls();
     this.loadRemoteUserInfo(this.receiverId);
     this.localUserAvatar = this.authService.getLoggedInUser().avatar;
-    
-    this.socketService.onCallEnded()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.toastr.info('Call ended by the other party', '', { timeOut: 2000 });
-        this.endCall();
-      });
-
-    this.socketService.onCallRejected()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.toastr.info('Call was rejected', '', { timeOut: 2000 });
-        this.endCall();
-      });
-
-    this.startCallTimer();
   }
 
   ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
     this.endCall();
     window.removeEventListener('beforeunload', this.endCall.bind(this));
-
-    window.addEventListener('beforeunload', (e) => {
-      this.endCall();
-      e.returnValue = '';
-    });
   }
 
   onRemoteVideoPlaying() {
@@ -131,14 +102,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   onLocalVideoPlaying() {
     this.localVideoActive = true;
   }
-
-  private startCallTimer() {
-    this.callStartTime = new Date();
-    this.callTimer = setInterval(() => {
-      this.callDuration = Math.floor((new Date().getTime() - this.callStartTime.getTime()) / 1000);
-    }, 1000);
-  }
-
 
   private loadRemoteUserInfo(userId: string) {
     this.userService.getUserById(userId).subscribe({
@@ -240,6 +203,11 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       }
     });
+
+    this.socketService.onCallEnded().subscribe(() => {
+      this.toastr.info('The other user has ended the call');
+      this.endCall();
+    });    
   }
 
   private setupAudioElements() {
@@ -302,32 +270,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         }
         (audioElement.srcObject as MediaStream).addTrack(event.track);
         audioElement.play();
-      }
-    };
-
-    this.peerConnection.onconnectionstatechange = () => {
-      if (!this.peerConnection) return;
-
-      console.log('Connection state:', this.peerConnection.connectionState);
-
-      switch (this.peerConnection.connectionState) {
-        case 'disconnected':
-        case 'failed':
-        case 'closed':
-          this.toastr.warning('Connection lost', '', { timeOut: 2000 });
-          this.endCall();
-          break;
-      }
-    };
-
-    this.peerConnection.oniceconnectionstatechange = () => {
-      if (!this.peerConnection) return;
-
-      console.log('ICE connection state:', this.peerConnection.iceConnectionState);
-
-      if (this.peerConnection.iceConnectionState === 'disconnected' || this.peerConnection.iceConnectionState === 'failed') {
-        this.toastr.warning('Network connection lost', '', { timeOut: 2000 });
-        this.endCall();
       }
     };
   }
@@ -422,15 +364,9 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   }
 
   endCall() {
-
     if (this.callInProgress && this.receiverId) {
       this.socketService.endCall(this.receiverId);
     }
-    if (this.callTimer) {
-      clearInterval(this.callTimer);
-    }
-    console.log(`Call duration: ${this.callDuration} seconds`);
-
     navigator.mediaDevices.getUserMedia({ audio: true, video: true })
       .then((stream) => {
         stream.getTracks().forEach(track => track.stop());
