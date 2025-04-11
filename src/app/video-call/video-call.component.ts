@@ -4,6 +4,8 @@ import { SocketService } from '../core/services/socket.service';
 import { ToastrService } from 'ngx-toastr';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../core/services/user.service';
+import { takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-video-call',
@@ -63,6 +65,8 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   remoteUserAvatar!: string;
   remoteUserName!: string;
 
+  private destroy$ = new Subject<void>();
+
   constructor(
     public authService: AuthService,
     private socketService: SocketService,
@@ -88,9 +92,19 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     this.listenForCalls();
     this.loadRemoteUserInfo(this.receiverId);
     this.localUserAvatar = this.authService.getLoggedInUser().avatar;
+    this.socketService.onCallEnded()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
+        this.cleanUpCall();
+        this.router.navigate(['/chat']);
+      });
+
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.endCall();
     window.removeEventListener('beforeunload', this.endCall.bind(this));
   }
@@ -185,6 +199,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         console.error('Error answering call:', error);
         this.toastr.error(`Error answering call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
         this.callInProgress = false;
+        this.cleanUpCall();
       }
     });
 
@@ -203,11 +218,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       }
     });
-
-    this.socketService.onCallEnded().subscribe(() => {
-      this.toastr.info('The other user has ended the call');
-      this.endCall();
-    });    
   }
 
   private setupAudioElements() {
@@ -272,6 +282,19 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         audioElement.play();
       }
     };
+
+    this.peerConnection.onconnectionstatechange = () => {
+      if (this.peerConnection) {
+        console.log('Connection state:', this.peerConnection.connectionState);
+        if (this.peerConnection.connectionState === 'disconnected' || this.peerConnection.connectionState === 'failed') {
+          this.toastr.warning('Connection lost', '', { timeOut: 2000 });
+          this.cleanUpCall();
+          this.router.navigate(['/chat']);
+        }
+      }
+    };
+
+
   }
 
   toggleMute() {
@@ -363,10 +386,55 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     }
   }
 
+  // endCall() {
+  //   if (this.callInProgress && this.receiverId) {
+  //     this.socketService.endCall(this.receiverId);
+  //   }
+  //   navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+  //     .then((stream) => {
+  //       stream.getTracks().forEach(track => track.stop());
+  //     })
+  //     .catch(error => console.log("Error releasing media devices:", error));
+  //   if (this.myStream) {
+  //     this.myStream.getTracks().forEach(track => track.stop());
+  //     this.myStream = null!;
+  //   }
+  //   if (this.peerConnection) {
+  //     this.peerConnection.getSenders().forEach(sender => {
+  //       if (sender.track) sender.track.stop();
+  //     });
+  //     this.peerConnection.close();
+  //     this.peerConnection = null!;
+  //   }
+
+  //   if (this.myVideo?.nativeElement) {
+  //     this.myVideo.nativeElement.srcObject = null;
+  //   }
+  //   if (this.userVideo?.nativeElement) {
+  //     this.userVideo.nativeElement.srcObject = null;
+  //   }
+  //   if (this.isRecording) {
+  //     this.stopScreenRecording();
+  //   }
+  //   navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+  //     .then((stream) => {
+  //       stream.getTracks().forEach(track => track.stop());
+  //     })
+  //     .catch(error => console.log("Error releasing media devices:", error));
+  //   this.callInProgress = false;
+  //   this.router.navigate(['/chat']);
+  // }
+
   endCall() {
     if (this.callInProgress && this.receiverId) {
       this.socketService.endCall(this.receiverId);
     }
+    this.cleanUpCall();
+  }
+
+  private cleanUpCall() {
+    if (!this.callInProgress) return;
+
     navigator.mediaDevices.getUserMedia({ audio: true, video: true })
       .then((stream) => {
         stream.getTracks().forEach(track => track.stop());
@@ -390,16 +458,12 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     if (this.userVideo?.nativeElement) {
       this.userVideo.nativeElement.srcObject = null;
     }
+
     if (this.isRecording) {
       this.stopScreenRecording();
     }
-    navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-      .then((stream) => {
-        stream.getTracks().forEach(track => track.stop());
-      })
-      .catch(error => console.log("Error releasing media devices:", error));
+
     this.callInProgress = false;
-    this.router.navigate(['/chat']);
   }
 
   // async startScreenRecording() {
