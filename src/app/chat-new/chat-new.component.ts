@@ -23,7 +23,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   groupAvatar: string = '';
   isOnline: boolean = false;
   activeSection: 'chat' | 'groups' | 'contacts' = 'chat';
-  messageArray: Array<{ userId: any, content?: string, fileUrl?: string, type: string, createdAt: string, senderName?: string }> = [];
+  messageArray: Array<{ user: any, content?: string, fileUrl?: string, type: string, createdAt: string, senderName?: string }> = [];
   groupMembers!: any[];
   isGroupChat = false;
   previewUrl: string | null = null;
@@ -48,6 +48,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   receiverId!: string;
   callType: 'audio' | 'video' = 'video';  
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
+  isLoading:boolean = false;
 
   constructor(
     public formBuilder: FormBuilder,
@@ -244,11 +245,14 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   loadChatConversations() {
+    this.isLoading = true;
     this.userService.getUserConversations().subscribe({
       next: (response) => {
+        this.isLoading = false;
         this.chatData = response.data;
       },
       error: (error) => {
+        this.isLoading = false;
         this.toastr.error(`Failed to load conversations: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
       }
     });
@@ -270,7 +274,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.receiverId = receiverId;
     this.username = name;
     this.userProfile = avatar;
-  this.isOnline = isOnline;
+    this.isOnline = isOnline;
 
     if (!conversationId) {
       this.startNewChat(receiverId, name, avatar);
@@ -326,7 +330,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     const loggedInUser = this.authService.getLoggedInUser();
 
     const messageData: any = {
-      userId: {
+      user: {
         _id: loggedInUser._id,
         username: loggedInUser.username,
         email: loggedInUser.email,
@@ -407,10 +411,12 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
   private loadMessages(conversationId: string): void {
     if (this.isGroupChat) {
+      this.isLoading = true;
       this.socketService.joinGroup(conversationId);
       this.userService.getMessages(conversationId).subscribe(response => {
         if (response.success) {
           this.messageArray = response.data.map((message: any) => {
+            this.isLoading = false;
             const sender = this.groupMembers.find(member => member._id === message.userId);
             if (sender) {
               message.senderName = sender.username;
@@ -421,9 +427,11 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         }
       });
     } else {
+      this.isLoading = true;
       this.socketService.joinConversation(conversationId);
       this.userService.getMessages(conversationId).subscribe(response => {
         if (response.success) {
+          this.isLoading = false;
           this.messageArray = response.data;
           setTimeout(() => this.scrollToBottom(), 100);
         }
@@ -466,6 +474,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   createGroup() {
+    this.isLoading = true;
     if (this.groupForm.invalid || this.selectedMembers.length < 2) {
       this.toastr.error('Please provide a valid group name, description, and select at least 2 members.');
       return;
@@ -491,6 +500,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
     this.userService.createGroup(formData).subscribe({
       next: () => {
+        this.isLoading = false;
         this.toastr.success('Group created successfully!', '', { timeOut: 2000 });
         this.loadGroupConversations();
         this.showGroupForm = false;
@@ -498,6 +508,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         this.selectedMembers = [];
       },
       error: (error) => {
+        this.isLoading = false;
         this.toastr.error(`Failed to create group: ${error.message || 'Unknown error'}`, '', { timeOut: 2000 });
       }
     });

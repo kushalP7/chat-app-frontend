@@ -15,6 +15,7 @@ export class LoginComponent implements OnInit {
     loginForm!: FormGroup;
     summited: boolean = false;
     formData: any = [];
+    loading: boolean = false;
 
     constructor(
         private fb: FormBuilder,
@@ -36,10 +37,12 @@ export class LoginComponent implements OnInit {
         if (this.loginForm.invalid) {
             return;
         }
+        this.loading = true;
         const email = this.loginForm.get('email')?.value;
         const password = this.loginForm.get('password')?.value;
         this.authService.loginUser(email, password).subscribe({
             next: (response) => {
+                this.loading = false;
                 const token = response.data.token;
                 if (token) {
                     this.socketService.connectWithToken();
@@ -48,6 +51,7 @@ export class LoginComponent implements OnInit {
                 this.toastr.success('Login Successfully', '', { timeOut: 2000 });
             },
             error: (error) => {
+                this.loading = false;
                 this.toastr.error(error.error.message, '', { timeOut: 2000 });
             }
         });

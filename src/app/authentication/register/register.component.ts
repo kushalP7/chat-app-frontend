@@ -14,6 +14,7 @@ export class RegisterComponent implements OnInit {
   submitted: boolean = false;
   avatarFile!: File | null;
   avatarPreview: string | null = null;
+  loading: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -48,7 +49,7 @@ export class RegisterComponent implements OnInit {
     if (this.registerForm.invalid) {
       return;
     }
-
+    this.loading = true;
     const formData = new FormData();
     formData.append('username', this.registerForm.get('username')?.value);
     formData.append('email', this.registerForm.get('email')?.value);
@@ -60,10 +61,12 @@ export class RegisterComponent implements OnInit {
 
     this.authService.register(formData as any).subscribe({
       next: () => {
+        this.loading = false;
         this.router.navigate(['auth/login']);
         this.toastr.success('Registered Successfully', '', { timeOut: 2000 });
       },
       error: (error) => {
+        this.loading = false;
         this.toastr.error(error.error.message, '', { timeOut: 2000 });
       },
     }

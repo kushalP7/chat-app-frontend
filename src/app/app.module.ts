@@ -19,6 +19,8 @@ import { GroupCallComponent } from './group-call/group-call.component';
 import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 import { ErrorInterceptor } from './core/interceptors/error.interceptor';
 import { ServiceWorkerModule } from '@angular/service-worker';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+
 
 const socketConfig = {
   url: environment.apiUrl,
@@ -41,6 +43,7 @@ const socketConfig = {
   imports: [
     ToastrModule.forRoot(),
     BrowserAnimationsModule,
+    NgxSkeletonLoaderModule,
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
@@ -56,7 +59,6 @@ const socketConfig = {
       // or after 30 seconds (whichever comes first).
       registrationStrategy: 'registerWhenStable:30000'
     }),
-
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },

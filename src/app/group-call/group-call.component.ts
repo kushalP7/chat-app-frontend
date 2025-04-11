@@ -79,7 +79,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error initializing group call:', error);
       this.toastr.error(`Failed to start group call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
-      this.router.navigate(['/chat']);
+      this.router.navigate(['/chat'], {replaceUrl: true});
     }
   }
 
@@ -297,7 +297,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   leaveCall() {
     this.socketService.leaveGroupCall(this.groupId, this.authService.getLoggedInUser()._id);
     // this.cleanUp();
-    this.router.navigate(['/chat']);
+    this.router.navigate(['/chat'], {replaceUrl: true});
   }
 
   private cleanUp() {

@@ -64,7 +64,6 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   localUserAvatar!: string;
   remoteUserAvatar!: string;
   remoteUserName!: string;
-
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -97,7 +96,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       .subscribe(() => {
         this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
         this.cleanUpCall();
-        this.router.navigate(['/chat']);
+        this.router.navigate(['/chat', { replaceUrl: true }]);
       });
 
   }
@@ -147,7 +146,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       console.error('Error starting video call:', error);
       this.toastr.error(`Failed to start video call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       this.callInProgress = false;
-      this.router.navigate(['/chat'])
+      this.router.navigate(['/chat', { replaceUrl: true }]);
     }
   }
 
@@ -289,7 +288,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         if (this.peerConnection.connectionState === 'disconnected' || this.peerConnection.connectionState === 'failed') {
           this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
           this.cleanUpCall();
-          this.router.navigate(['/chat']);
+          this.router.navigate(['/chat', { replaceUrl: true }]);
         }
       }
     };
@@ -386,53 +385,12 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     }
   }
 
-  // endCall() {
-  //   if (this.callInProgress && this.receiverId) {
-  //     this.socketService.endCall(this.receiverId);
-  //   }
-  //   navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-  //     .then((stream) => {
-  //       stream.getTracks().forEach(track => track.stop());
-  //     })
-  //     .catch(error => console.log("Error releasing media devices:", error));
-  //   if (this.myStream) {
-  //     this.myStream.getTracks().forEach(track => track.stop());
-  //     this.myStream = null!;
-  //   }
-  //   if (this.peerConnection) {
-  //     this.peerConnection.getSenders().forEach(sender => {
-  //       if (sender.track) sender.track.stop();
-  //     });
-  //     this.peerConnection.close();
-  //     this.peerConnection = null!;
-  //   }
-
-  //   if (this.myVideo?.nativeElement) {
-  //     this.myVideo.nativeElement.srcObject = null;
-  //   }
-  //   if (this.userVideo?.nativeElement) {
-  //     this.userVideo.nativeElement.srcObject = null;
-  //   }
-  //   if (this.isRecording) {
-  //     this.stopScreenRecording();
-  //   }
-  //   navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-  //     .then((stream) => {
-  //       stream.getTracks().forEach(track => track.stop());
-  //     })
-  //     .catch(error => console.log("Error releasing media devices:", error));
-  //   this.callInProgress = false;
-  //   this.router.navigate(['/chat']);
-  // }
-
   endCall() {
     if (this.callInProgress && this.receiverId) {
       this.socketService.endCall(this.receiverId);
     }
     this.cleanUpCall();
-    setTimeout(() => {
-      location.reload();
-    }, 2000);
+    setTimeout(() => { location.reload() }, 500);
   }
 
   private cleanUpCall() {
@@ -467,7 +425,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     }
 
     this.callInProgress = false;
-    this.router.navigate(['/chat']);
+    this.router.navigate(['/chat'], { replaceUrl: true });
   }
 
   // async startScreenRecording() {

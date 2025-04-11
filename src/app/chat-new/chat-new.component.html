@@ -262,10 +262,10 @@
                                         style="text-decoration: none;" class="text-dark">{{username}}</a></h5>
 
                                 <p class="text-muted text-truncate mb-0">
-                                      <span [ngClass]="isOnline ? 'text-success' : 'text-muted'">
+                                    <span [ngClass]="isOnline ? 'text-success' : 'text-muted'">
                                         <i class="fa-solid fa-circle fa-2xs"></i>
                                         {{ isOnline ? (isTyping ? 'Typing...' : 'Online') : 'Offline' }}
-                                      </span>
+                                    </span>
                                 </p>
 
                             </div>
@@ -284,15 +284,13 @@
                     <div class="col-xl-8 col-8">
                         <ul class="list-inline user-chat-nav text-end mb-0">
                             <li class="list-inline-item" *ngIf="!isGroupChat && userProfile">
-                                <button class="btn nav-btn"
-                                    (click)="startAudioCall(this.receiverId)">
+                                <button class="btn nav-btn" (click)="startAudioCall(this.receiverId)">
                                     <i class="fa-solid fa-phone"></i>
                                 </button>
                             </li>
 
-                            <li class="list-inline-item" *ngIf="!isGroupChat && userProfile" >
-                                <button class="btn nav-btn"
-                                    (click)="startVideoCall(this.receiverId)">
+                            <li class="list-inline-item" *ngIf="!isGroupChat && userProfile">
+                                <button class="btn nav-btn" (click)="startVideoCall(this.receiverId)">
                                     <i class="fa-solid fa-video"></i>
                                 </button>
                             </li>
@@ -341,25 +339,25 @@
                     <div #chatWindow>
                         <ul class="list-unstyled mb-0">
                             <li *ngFor="let msg of messageArray"
-                                [ngClass]="{ 'right': msg.userId._id === authService.getLoggedInUser()._id }">
+                                [ngClass]="{ 'right': msg.user._id === authService.getLoggedInUser()._id }">
                                 <div class="conversation-list"
-                                    [ngClass]="{ 'order-3': msg.userId._id === authService.getLoggedInUser()._id }">
+                                    [ngClass]="{ 'order-3': msg.user._id === authService.getLoggedInUser()._id }">
                                     <div class="ctext-wrap">
-                                        <div *ngIf="msg.userId !== authService.getLoggedInUser()._id && msg.userId.avatar"
+                                        <div *ngIf="msg.user !== authService.getLoggedInUser()._id && msg.user.avatar"
                                             class="chat-avatar">
-                                            <img [src]="msg.userId.avatar" alt="avatar-2">
+                                            <img [src]="msg.user.avatar" alt="avatar-2">
                                         </div>
-                                        <div *ngIf="!msg.userId.username && !userProfile" class="avatar-sm chat-avatar">
+                                        <div *ngIf="!msg.user.username && !userProfile" class="avatar-sm chat-avatar">
                                             <span class="avatar-title rounded-circle bg-soft-primary text-primary">
-                                                {{msg.userId.username}}
+                                                {{msg.user.username}}
                                             </span>
                                         </div>
-                                        <div class="ctext-wrap-content">
+                                        <div class="ctext-wrap-content">    
                                             <h5 class="conversation-name">
                                                 <a href="javascript:void(0)" style="text-decoration: none;"
                                                     class="user-name">
-                                                    {{ msg.userId._id === authService.getLoggedInUser()._id ? 'You' :
-                                                    msg.userId.username }}
+                                                    {{ msg.user._id === authService.getLoggedInUser()._id ? 'You' :
+                                                    msg.user.username }}
                                                 </a>
                                                 <span class="time">{{ msg.createdAt | date: 'short' }}</span>
                                             </h5>
@@ -400,6 +398,18 @@
                                     </div>
                                 </div>
                             </li>
+                            <ng-container *ngIf="isLoading">
+                                <li *ngFor="let _ of [].constructor(10); let i = index" class="mb-4">
+                                    <div class="conversation-list d-flex"
+                                        [ngClass]="{ 'flex-row-reverse': i % 2 !== 0 }">
+                                        <div class="" [ngClass]="{ 'ms-3 me-0 ': i % 2 !== 0 }">
+                                            <ngx-skeleton-loader appearance="line"
+                                                [theme]="i%2===0 ? { width: '200px', height: '75px', 'border-radius': '12px', 'background-color':'rgba(3, 142, 220, 0.1)' } : { width: '200px', height: '75px', 'border-radius': '12px', 'background-color':'#f5f6f8' }"></ngx-skeleton-loader>
+                                        </div>
+
+                                    </div>
+                                </li>
+                            </ng-container>
                             <div class="preview-modal" *ngIf="previewUrl" (click)="closePreview()">
                                 <img *ngIf="previewType === 'image'" [src]=" previewUrl">
                                 <video *ngIf="previewType === 'video'" controls autoplay>
@@ -510,7 +520,16 @@
 
                         </div>
 
-                        <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Create Group</button>
+                        <button type="submit" class="btn btn-primary " [disabled]="isLoading">
+                            <span *ngIf="!isLoading">Create Group</span>
+
+                            <span *ngIf="isLoading" class="d-flex align-items-center">
+                                <span class="spinner-border spinner-border-sm text-light me-2" role="status"
+                                    aria-hidden="true"></span>
+                                Creating Group...
+                            </span>
+                        </button>
+
                         <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal"
                             (click)="toggleGroupForm()">Cancel</button>
                     </form>

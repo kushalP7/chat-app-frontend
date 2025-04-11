@@ -17,13 +17,23 @@
                         class="form-control bg-dark text-white border-dark" id="password" placeholder="••••••••"
                         name="password" />
                 </div>
-                <button type="submit" class="btn btn-primary w-100 py-2 mt-3"
-                    style="background: linear-gradient(45deg, #6366f1, #8b5cf6); border: none;">
-                    Sign In
+                <button type="submit"
+                    class="btn btn-primary w-100 py-2 mt-3 d-flex justify-content-center align-items-center"
+                    style="background: linear-gradient(45deg, #6366f1, #8b5cf6); border: none;" [disabled]="loading">
+
+                    <span *ngIf="!loading">Sign In</span>
+
+                    <span *ngIf="loading" class="d-flex align-items-center">
+                        <span class="spinner-border spinner-border-sm text-light me-2" role="status"
+                            aria-hidden="true"></span>
+                            Signing in...
+                    </span>
                 </button>
+
+
             </form>
             <div class="text-center mt-4">
-                <a routerLink="/auth/register"  class="text-decoration-none text-purple-300">Sign Up Here</a>
+                <a routerLink="/auth/register" class="text-decoration-none text-purple-300">Sign Up Here</a>
             </div>
         </div>
     </div>
