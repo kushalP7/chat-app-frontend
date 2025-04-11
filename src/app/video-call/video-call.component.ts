@@ -287,7 +287,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       if (this.peerConnection) {
         console.log('Connection state:', this.peerConnection.connectionState);
         if (this.peerConnection.connectionState === 'disconnected' || this.peerConnection.connectionState === 'failed') {
-          this.toastr.warning('Connection lost', '', { timeOut: 2000 });
+          this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
           this.cleanUpCall();
           this.router.navigate(['/chat']);
         }
@@ -430,7 +430,9 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.socketService.endCall(this.receiverId);
     }
     this.cleanUpCall();
-    location.reload();
+    setTimeout(() => {
+      location.reload();
+    }, 2000);
   }
 
   private cleanUpCall() {
