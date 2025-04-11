@@ -430,6 +430,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       this.socketService.endCall(this.receiverId);
     }
     this.cleanUpCall();
+    location.reload();
   }
 
   private cleanUpCall() {
@@ -464,6 +465,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
     }
 
     this.callInProgress = false;
+    this.router.navigate(['/chat']);
   }
 
   // async startScreenRecording() {
