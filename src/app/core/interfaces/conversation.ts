@@ -1,5 +1,3 @@
-import { IUser } from "./user";
-
 export interface IConversation {
     _id: string;
     members: string[];

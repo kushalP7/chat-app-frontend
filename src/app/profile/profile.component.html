@@ -1,0 +1,41 @@
+<div class="container-fluid profile-container py-5">
+    <button type="button" class="btn-close float-end" aria-label="Close" (click)="closeModal()"></button>
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-8 col-xl-8 col-12 text-center">
+            <div *ngIf="!isLoading; else skeletonLoader" class="profile-card shadow rounded-4 bg-white">
+                <div class="profile-image-container mb-3">
+                    <img class="rounded-circle avatar-img img-fluid" [src]="user.avatar"
+                        onerror="this.src='../../assets/user.jpg'" alt="Profile Image" width="100" height="100" />
+                </div>
+
+                <h4 class="mb-2">{{ user.username }}</h4>
+                <p class="text-muted text-truncate mb-1">{{ user.email }}</p>
+                <p class="status-text">
+                    <span [ngClass]="user.isOnline ? 'text-success' : 'text-muted'">
+                        <i class="fa-solid fa-circle fa-2xs"></i>
+                        {{ user.isOnline ? 'Online' : (user.lastSeen ? 'Last seen: ' + (user.lastSeen | date: 'short') : 'Offline') }}
+                    </span>
+                </p>
+            </div>
+
+            <ng-template #skeletonLoader>
+                <div class="profile-card shadow rounded-4 bg-white p-4">
+                    <div class="mb-3">
+                        <ngx-skeleton-loader appearance="circle"
+                            [theme]="{ width: '100px', height: '100px', 'margin': '0 auto' }">
+                        </ngx-skeleton-loader>
+                    </div>
+
+                    <ngx-skeleton-loader [theme]="{ height: '24px', width: '60%', 'margin': '0 auto 10px auto' }">
+                    </ngx-skeleton-loader>
+
+                    <ngx-skeleton-loader [theme]="{ height: '16px', width: '50%', 'margin': '0 auto 8px auto' }">
+                    </ngx-skeleton-loader>
+
+                    <ngx-skeleton-loader [theme]="{ height: '12px', width: '40%', 'margin': '0 auto' }">
+                    </ngx-skeleton-loader>
+                </div>
+            </ng-template>
+        </div>
+    </div>
+</div>

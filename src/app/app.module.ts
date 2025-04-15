@@ -20,6 +20,8 @@ import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 import { ErrorInterceptor } from './core/interceptors/error.interceptor';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { ProfileComponent } from './profile/profile.component';
+import { GroupInfoComponent } from './group-info/group-info.component';
 
 
 const socketConfig = {
@@ -39,6 +41,8 @@ const socketConfig = {
     ChatNewComponent,
     VideoCallComponent,
     GroupCallComponent,
+    ProfileComponent,
+    GroupInfoComponent,
   ],
   imports: [
     ToastrModule.forRoot(),

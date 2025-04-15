@@ -7,6 +7,10 @@ import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ProfileComponent } from '../profile/profile.component';
+import { GroupInfoComponent } from '../group-info/group-info.component';
+import { IUser } from '../core/interfaces/user';
 
 @Component({
   selector: 'app-chat-new',
@@ -16,41 +20,49 @@ import Swal from 'sweetalert2';
 export class ChatNewComponent implements OnInit, AfterViewInit {
   chatData!: any[];
   groupChatData!: any[];
-  username: string = this.authService.getLoggedInUser().username;
-  groupname!: string;
-  formData!: FormGroup;
-  userProfile: string = '';
-  loginUserProfile: string = this.authService.getLoggedInUser().avatar;
-  groupAvatar: string = '';
-  isOnline: boolean = false;
-  lastSeen !: Date;
-  activeSection: 'chat' | 'groups' | 'contacts' = 'chat';
-  messageArray: Array<{ _id: string, user: any, content?: string, fileUrl?: string, type: string, isDeleted: boolean, createdAt: string, senderName?: string }> = [];
+  users: any[] = [];
+  selectedMembers: any[] = [];
   groupMembers!: any[];
-  isGroupChat = false;
+  groupCallParticipants: any[] = [];
+
+  messageArray: Array<{ _id: string, user: any, content?: string, fileUrl?: string, type: string, isDeleted: boolean, createdAt: string, senderName?: string }> = [];
+  formData!: FormGroup;
+  groupForm!: FormGroup;
+
+  lastSeen !: Date;
+
+  activeGroupCalls: { [groupId: string]: boolean } = {};
+  activeSection: 'chat' | 'groups' | 'contacts' = 'chat';
+  callType: 'audio' | 'video' = 'video';
+
+  username: string = this.authService.getLoggedInUser().username;
+  loginUserProfile: string = this.authService.getLoggedInUser().avatar;
+  groupname!: string;
+  userProfile: string = '';
   previewUrl: string | null = null;
   previewType: string | null = null;
   fileName: string = '';
-  file: File | null = null;
-  message: string = '';
-  conversationId!: string;
-  isTyping: boolean = false;
-  users: any[] = [];
-  groupForm!: FormGroup;
-  showGroupForm = false;
-  selectedMembers: any[] = [];
-  selectedFile: File | null = null;
-  isMobileView = false;
-  isSidebarOpen = true;
-  groupCallParticipants: any[] = [];
-  activeGroupCalls: { [groupId: string]: boolean } = {};
-  showDropdown = false;
-  private callListenerSub: Subscription | undefined;
-  callInProgress = false;
   receiverId!: string;
-  callType: 'audio' | 'video' = 'video';
-  @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
+  message: string = '';
+  groupAvatar: string = '';
+  conversationId!: string;
+
+  isGroupChat: boolean = false;
+  isOnline: boolean = false;
+  isTyping: boolean = false;
+  isMobileView: boolean = false;
+  isSidebarOpen: boolean = true;
+  showGroupForm: boolean = false;
+  showDropdown: boolean = false;
+  callInProgress: boolean = false;
   isLoading: boolean = false;
+
+  file: File | null = null;
+  selectedFile: File | null = null;
+
+  private callListenerSub: Subscription | undefined;
+
+  @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
 
   constructor(
     public formBuilder: FormBuilder,
@@ -61,6 +73,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     private cdr: ChangeDetectorRef,
     private router: Router,
     private fb: FormBuilder,
+    private modalService: NgbModal
 
   ) {
     this.groupForm = this.fb.group({
@@ -166,18 +179,18 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   private setupCallNotifications() {
     this.callListenerSub = this.socketService.onIncomingCall().subscribe(async (data: any) => {
       const myUserId = this.authService.getLoggedInUser()._id;
-  
+
       if (!data.offer || data.from === myUserId || data.to !== myUserId) return;
-  
+
       if (this.callInProgress) {
         console.log("Already in a call. Ignoring incoming call.");
         return;
       }
-  
+
       this.userService.getUserById(data.from).subscribe({
         next: async (res) => {
           const callerName = res.data.username || 'Unknown User';
-  
+
           const result = await Swal.fire({
             title: `${callerName} is calling you`,
             text: `Would you like to accept this ${data.callType} call?`,
@@ -187,7 +200,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
             cancelButtonText: 'Decline',
             allowOutsideClick: false
           });
-  
+
           if (result.isConfirmed) {
             this.callInProgress = true;
             this.callListenerSub?.unsubscribe();
@@ -204,7 +217,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       });
     });
   }
-  
+
 
   startVideoCall(receiverId: string) {
     this.router.navigate(['/video-call', receiverId], {
@@ -278,13 +291,13 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
   }
 
-  startOrResumeChat(name: string, avatar: any, isOnline: boolean, conversationId: string, receiverId: string, lastSeen:Date) {
+  startOrResumeChat(name: string, avatar: any, isOnline: boolean, conversationId: string, receiverId: string, lastSeen: Date) {
     this.isGroupChat = false;
     this.receiverId = receiverId;
     this.username = name;
     this.userProfile = avatar;
     this.isOnline = isOnline;
-    this.lastSeen = lastSeen;    
+    this.lastSeen = lastSeen;
 
     if (!conversationId) {
       this.startNewChat(receiverId, name, avatar);
@@ -321,7 +334,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       this.cdr.detectChanges();
     }
   }
-  
+
   openGroupConversation(group: any) {
     this.isGroupChat = true;
     this.groupname = group.groupName;
@@ -446,7 +459,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     } else {
       this.isLoading = true;
       this.socketService.joinConversation(conversationId);
-      this.userService.getMessages(conversationId).subscribe(response => {        
+      this.userService.getMessages(conversationId).subscribe(response => {
         if (response.success) {
           this.isLoading = false;
           this.messageArray = response.data;
@@ -730,6 +743,17 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       }
     });
   }
-  
-  
+
+  openUserProfile(userId: string) {
+    const modalRef = this.modalService.open(ProfileComponent);
+    modalRef.componentInstance.userId = userId;
+    modalRef.componentInstance.modalRef = modalRef;
+  }
+
+  openGroupInfo(groupId: string) {
+    const modalRef = this.modalService.open(GroupInfoComponent);
+    modalRef.componentInstance.groupId = groupId;
+    modalRef.componentInstance.modalRef = modalRef;
+  }
+
 }

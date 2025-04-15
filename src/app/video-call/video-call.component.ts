@@ -13,17 +13,36 @@ import { Subject } from 'rxjs';
   styleUrls: ['./video-call.component.scss']
 })
 export class VideoCallComponent implements OnInit, OnDestroy {
+
   @ViewChild("myVideo") myVideo!: ElementRef;
   @ViewChild("userVideo") userVideo!: ElementRef;
 
-  receiverId!: string;
   isScreenSharing: boolean = false;
   isVideoEnabled: boolean = true;
-  callInProgress = false;
+  callInProgress: boolean = false;
   isMuted: boolean = false;
+  isRecording: boolean = false;
+  isCallInitiator: boolean = false;
+  localVideoActive: boolean = false;
+  remoteVideoActive: boolean = false;
+
+  receiverId!: string;
+  recordedVideoUrl: string | null = null;
+  localUserAvatar!: string;
+  remoteUserAvatar!: string;
+  remoteUserName!: string;
+
   callType: 'audio' | 'video' = 'video';
+
   private myStream!: MediaStream;
   private peerConnection!: RTCPeerConnection;
+  private previousStreams: MediaStream[] = [];
+  private screenStream: MediaStream | null = null;
+  private mediaRecorder!: MediaRecorder;
+  private recordedChunks: Blob[] = [];
+  
+  private destroy$ = new Subject<void>();
+  
   private servers = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -51,21 +70,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }
     ]
   };
-  private previousStreams: MediaStream[] = [];
-  private screenStream: MediaStream | null = null;
-  isCallInitiator = false;
-  private mediaRecorder!: MediaRecorder;
-  private recordedChunks: Blob[] = [];
-  isRecording = false;
-  recordedVideoUrl: string | null = null;
-
-  localVideoActive = false;
-  remoteVideoActive = false;
-  localUserAvatar!: string;
-  remoteUserAvatar!: string;
-  remoteUserName!: string;
-  private destroy$ = new Subject<void>();
-
+  
   constructor(
     public authService: AuthService,
     private socketService: SocketService,

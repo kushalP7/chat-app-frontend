@@ -128,7 +128,7 @@
                                                 <div class="ms-auto">
                                                     <button class="btn btn-outline-primary" type="button"
                                                         data-bs-toggle="modal" data-bs-target="#groupModal">
-                                                        <i class="fa-solid fa-plus"></i> Add New
+                                                        <i class="fa-solid fa-plus"></i> Create New
                                                     </button>
                                                 </div>
                                             </div>
@@ -190,7 +190,7 @@
                                                     <ul class="list-unstyled chat-list">
                                                         <li>
                                                             <a href="javascript:void(0);"
-                                                                (click)="startOrResumeChat(user.username, user.avatar, user.isOnline, user.conversationId, user._id, user.lastSeen)">
+                                                                (click)="startOrResumeChat(user.username, user.avatar, user.isOnline, user.conversationId, user._id!, user.lastSeen)">
                                                                 <div class="d-flex align-items-start">
                                                                     <div
                                                                         class="flex-shrink-0 user-img align-self-center me-3">
@@ -252,13 +252,15 @@
                             <div *ngIf="isGroupChat" class="flex-shrink-0 me-2">
                                 <img :src="{{groupAvatar}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
                             </div>
-                            <div *ngIf="!userProfile && !isGroupChat" class="avatar-sm align-self-center me-3"><span
-                                    class="avatar-title rounded-circle bg-soft-primary text-primary">
-                                    {{username.charAt(0)}} </span></div>
                             <div class="flex-grow-1" *ngIf="!isGroupChat" style="min-width: 200px;">
+                                <div *ngIf="!userProfile && !isGroupChat" class="avatar-sm align-self-center me-3"><span
+                                        class="avatar-title rounded-circle bg-soft-primary text-primary">
+                                        {{username.charAt(0)}} </span></div>
                                 <h5 class="font-size-14 mb-0 text-truncate" data-bs-toggle="tooltip"
-                                    data-bs-placement="top" title="{{username}}"><a href="javascript:void(0)"
-                                        style="text-decoration: none;" class="text-dark">{{username}}</a></h5>
+                                    data-bs-placement="top" title="{{username}}"><a
+                                        (click)="openUserProfile(receiverId)"
+                                        style="text-decoration: none; cursor: pointer;"
+                                        class="text-dark">{{username}}</a></h5>
 
                                 <p class="text-muted text-truncate mb-0">
                                     <span [ngClass]="isOnline ? 'text-success' : 'text-muted'">
@@ -274,8 +276,10 @@
                             </div>
                             <div class="flex-grow-1" *ngIf="isGroupChat" style="min-width: 106px;">
                                 <h5 class="font-size-14 mb-1 text-truncate" data-bs-toggle="tooltip"
-                                    data-bs-placement="top" title="{{groupname}}"><a href="javascript:void(0)"
-                                        style="text-decoration: none;" class="text-dark">{{groupname}}</a></h5>
+                                    data-bs-placement="top" title="{{groupname}}"><a
+                                        (click)="openGroupInfo(conversationId)"
+                                        style="text-decoration: none; cursor: pointer;"
+                                        class="text-dark">{{groupname}}</a></h5>
 
                                 <p class="text-muted text-truncate mb-0">
                                     {{ groupMembers.length }} Members
@@ -324,7 +328,10 @@
                                         <i class="fa-solid fa-ellipsis"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end" ngbDropdownMenu>
-                                        <a class="dropdown-item" href="javascript:void(0)">Profile</a>
+                                        <a *ngIf="isGroupChat" class="dropdown-item"
+                                            (click)="openGroupInfo(conversationId)">Profile</a>
+                                        <a *ngIf="!isGroupChat" class="dropdown-item"
+                                            (click)="openUserProfile(receiverId)">Profile</a>
                                         <a class="dropdown-item" href="javascript:void(0)">Archive</a>
                                         <a class="dropdown-item" href="javascript:void(0)">Muted</a>
                                         <a class="dropdown-item" (click)="deleteConversation(conversationId)">Delete</a>
@@ -357,7 +364,7 @@
                                         </div>
                                         <div class="ctext-wrap-content">
                                             <h5 class="conversation-name">
-                                                <a href="javascript:void(0)" style="text-decoration: none;"
+                                                <a (click)="openUserProfile(msg.user._id)" style="text-decoration: none; cursor: pointer;"
                                                     class="user-name">
                                                     {{ msg.user._id === authService.getLoggedInUser()._id ? 'You' :
                                                     msg.user.username }}

@@ -70,7 +70,7 @@ export class UserService {
     return this.http.get<IApiResponse<IConversation[]>>(`${this.apiUrl}/groupConversations`, { headers: this.getHeaders() });
   }
 
-  getGroupInfo(conversationId: string): Observable<any> { //Need to delete this
+  getGroupInfo(conversationId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/conversations/${conversationId}/group`, { headers: this.getHeaders() });
   }
 

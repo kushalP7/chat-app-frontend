@@ -14,15 +14,18 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   @ViewChild("localVideo") localVideo!: ElementRef;
   @ViewChild("remoteVideos") remoteVideosContainer!: ElementRef;
 
-  groupId!: string;
-  participants: { userId: string, username?: string, userAvatar?:string, stream: MediaStream }[] = [];
-  localStream!: MediaStream;
+  participants: { userId: string, username?: string, userAvatar?: string, stream: MediaStream }[] = [];
   peerConnections: { [key: string]: RTCPeerConnection } = {};
-  isCallInitiator = false;
-  isMuted = false;
-  isVideoEnabled = true;
-  isScreenSharing = false;
+
+  groupId!: string;
+
   screenStream: MediaStream | null = null;
+  localStream!: MediaStream;
+
+  isCallInitiator: boolean = false;
+  isMuted: boolean = false;
+  isVideoEnabled: boolean = true;
+  isScreenSharing: boolean = false;
 
   private iceServers = {
     iceServers: [
@@ -79,7 +82,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error initializing group call:', error);
       this.toastr.error(`Failed to start group call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
-      this.router.navigate(['/chat'], {replaceUrl: true});
+      this.router.navigate(['/chat'], { replaceUrl: true });
     }
   }
 
@@ -297,7 +300,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   leaveCall() {
     this.socketService.leaveGroupCall(this.groupId, this.authService.getLoggedInUser()._id);
     // this.cleanUp();
-    this.router.navigate(['/chat'], {replaceUrl: true});
+    this.router.navigate(['/chat'], { replaceUrl: true });
   }
 
   private cleanUp() {
