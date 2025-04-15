@@ -2,6 +2,9 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { IUser } from '../interfaces/user';
+import { IConversation } from '../interfaces/conversation';
+import { IApiResponse } from '../interfaces/apiResponse';
 
 @Injectable({
   providedIn: 'root'
@@ -24,52 +27,58 @@ export class UserService {
     });
   }
 
-  groupCreatHeaders():HttpHeaders{
+  groupCreatHeaders(): HttpHeaders {
     const token = this.getToken();
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
   }
 
-  getUsers(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/web/users`, { headers: this.getHeaders() });
+  getUsers(): Observable<IUser[]> {
+    return this.http.get<IUser[]>(`${this.apiUrl}/web/users`, { headers: this.getHeaders() });
   }
 
-  getUserConversations(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/conversations`, { headers: this.getHeaders() });
+  getUserConversations(): Observable<IApiResponse<IConversation[]>> {
+    return this.http.get<IApiResponse<IConversation[]>>(`${this.apiUrl}/conversations`, { headers: this.getHeaders() });
   }
 
   getMessages(conversationId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/messages/${conversationId}`, { headers: this.getHeaders() });
   }
 
-  getUserById(userId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/web/user/${userId}`, { headers: this.getHeaders() });
+  getUserById(userId: string): Observable<IApiResponse<IUser>> {
+    return this.http.get<IApiResponse<IUser>>(`${this.apiUrl}/web/user/${userId}`, { headers: this.getHeaders() });
   }
 
-  getAllUsersExceptCurrentUser(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/web/users/except-current`, { headers: this.getHeaders() });
+  getAllUsersExceptCurrentUser(): Observable<IApiResponse<IUser[]>> {
+    return this.http.get<IApiResponse<IUser[]>>(`${this.apiUrl}/web/users/except-current`, { headers: this.getHeaders() });
   }
 
   createOrGetConversation(receiverId: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/conversations`, { receiverId }, { headers: this.getHeaders() });
+    return this.http.post<any>(`${this.apiUrl}/conversations`, { receiverId }, { headers: this.getHeaders() });
   }
 
-  createGroup(formData: FormData): Observable<any> {
-    return this.http.post(`${this.apiUrl}/conversations/group`, formData, {headers: this.groupCreatHeaders()});
+  createGroup(formData: FormData): Observable<IApiResponse<IConversation>> {
+    return this.http.post<IApiResponse<IConversation>>(`${this.apiUrl}/conversations/group`, formData, {headers: this.groupCreatHeaders()});
   }
 
   addMembersToGroup(conversationId: string, userId: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/conversations/group/${conversationId}/add`, { userId }, { headers: this.getHeaders() });
   }
 
-  getUserGropuConversations(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/groupConversations`, { headers: this.getHeaders() });
+  getUserGropuConversations(): Observable<IApiResponse<IConversation[]>> {
+    return this.http.get<IApiResponse<IConversation[]>>(`${this.apiUrl}/groupConversations`, { headers: this.getHeaders() });
   }
 
-  getGroupInfo(conversationId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/conversation/${conversationId}/group`, { headers: this.getHeaders() });
+  getGroupInfo(conversationId: string): Observable<any> { //Need to delete this
+    return this.http.get(`${this.apiUrl}/conversations/${conversationId}/group`, { headers: this.getHeaders() });
   }
 
+  deleteMessage(messageId: string): Observable<IApiResponse<null>> {
+    return this.http.delete<IApiResponse<null>>(`${this.apiUrl}/messages/${messageId}`, { headers: this.getHeaders() });
+  }
 
+  deleteConversation(conversationId: string): Observable<IApiResponse<null>> {
+    return this.http.delete<IApiResponse<null>>(`${this.apiUrl}/conversations/${conversationId}`, { headers: this.getHeaders() });
+  }
 }

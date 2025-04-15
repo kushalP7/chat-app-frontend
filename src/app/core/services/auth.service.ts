@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { IUser } from '../interfaces/userInterface';
+import { IUser } from '../interfaces/user';
 import { environment } from 'src/environments/environment';
 
 

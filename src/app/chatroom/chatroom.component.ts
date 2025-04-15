@@ -34,7 +34,7 @@ export class ChatroomComponent implements OnInit, AfterViewInit {
   messageArray: Array<{ userId: string, content?: string, fileUrl?: string, type: string, createdAt: string, senderName?: string }> = [];
   isTyping: boolean = false;
   isOnline: boolean = false;
-  lastSeen: string | null = null;
+  lastSeen: Date | null = null;
   file: File | null = null;
 
   previewUrl: string | null = null;

@@ -41,7 +41,6 @@
                                 <a class="dropdown-item" href="#">Profile</a>
                                 <a class="dropdown-item" href="javascript:void(0);">Edit</a>
                                 <a class="dropdown-item" href="javascript:void(0);">Add Contact</a>
-                                <a class="dropdown-item" href="javascript:void(0);">Setting</a>
                             </div>
                         </div>
                     </div>
@@ -66,7 +65,7 @@
                                             <li class="" *ngFor="let data of chatData"
                                                 [ngClass]="{'active': data.receiver?.username == username}">
                                                 <a href="javascript: void(0);" style="border: 0.5px solid #e2e5e8  ;"
-                                                    (click)="startOrResumeChat(data.receiver?.username, data.receiver.avatar, data.receiver.isOnline, data._id, data.receiver._id)">
+                                                    (click)="startOrResumeChat(data.receiver?.username, data.receiver.avatar, data.receiver.isOnline, data._id, data.receiver._id, data.receiver.lastSeen)">
                                                     <div class="d-flex align-items-start">
                                                         <div
                                                             class="flex-shrink-0 user-img {{data.status}} align-self-center me-3">
@@ -191,7 +190,7 @@
                                                     <ul class="list-unstyled chat-list">
                                                         <li>
                                                             <a href="javascript:void(0);"
-                                                                (click)="startOrResumeChat(user.username, user.avatar, user.isOnline, user.conversationId, user._id)">
+                                                                (click)="startOrResumeChat(user.username, user.avatar, user.isOnline, user.conversationId, user._id, user.lastSeen)">
                                                                 <div class="d-flex align-items-start">
                                                                     <div
                                                                         class="flex-shrink-0 user-img align-self-center me-3">
@@ -247,16 +246,16 @@
                         <div class="d-flex align-items-center">
                             <i class="fa-solid fa-bars back-button me-2" (click)="toggleSidebar()"
                                 *ngIf="isMobileView"></i>
-                            <div *ngIf="!isGroupChat && userProfile " class="flex-shrink-0  me-3">
+                            <div *ngIf="!isGroupChat && userProfile " class="flex-shrink-0 me-2">
                                 <img :src="{{userProfile}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
                             </div>
-                            <div *ngIf="isGroupChat" class="flex-shrink-0  me-3">
+                            <div *ngIf="isGroupChat" class="flex-shrink-0 me-2">
                                 <img :src="{{groupAvatar}}" alt="" class="img-thumbnail d-block rounded-circle avatar">
                             </div>
                             <div *ngIf="!userProfile && !isGroupChat" class="avatar-sm align-self-center me-3"><span
                                     class="avatar-title rounded-circle bg-soft-primary text-primary">
                                     {{username.charAt(0)}} </span></div>
-                            <div class="flex-grow-1" *ngIf="!isGroupChat" style="min-width: 106px;">
+                            <div class="flex-grow-1" *ngIf="!isGroupChat" style="min-width: 200px;">
                                 <h5 class="font-size-14 mb-0 text-truncate" data-bs-toggle="tooltip"
                                     data-bs-placement="top" title="{{username}}"><a href="javascript:void(0)"
                                         style="text-decoration: none;" class="text-dark">{{username}}</a></h5>
@@ -264,7 +263,11 @@
                                 <p class="text-muted text-truncate mb-0">
                                     <span [ngClass]="isOnline ? 'text-success' : 'text-muted'">
                                         <i class="fa-solid fa-circle fa-2xs"></i>
-                                        {{ isOnline ? (isTyping ? 'Typing...' : 'Online') : 'Offline' }}
+                                        {{
+                                        isOnline
+                                        ? (isTyping ? 'Typing...' : 'Online')
+                                        : (lastSeen ? 'Last seen: ' + (lastSeen | date: 'short') : 'Offline')
+                                        }}
                                     </span>
                                 </p>
 
@@ -324,7 +327,7 @@
                                         <a class="dropdown-item" href="javascript:void(0)">Profile</a>
                                         <a class="dropdown-item" href="javascript:void(0)">Archive</a>
                                         <a class="dropdown-item" href="javascript:void(0)">Muted</a>
-                                        <a class="dropdown-item" href="javascript:void(0)">Delete</a>
+                                        <a class="dropdown-item" (click)="deleteConversation(conversationId)">Delete</a>
                                     </div>
                                 </div>
                             </li>
@@ -352,7 +355,7 @@
                                                 {{msg.user.username}}
                                             </span>
                                         </div>
-                                        <div class="ctext-wrap-content">    
+                                        <div class="ctext-wrap-content">
                                             <h5 class="conversation-name">
                                                 <a href="javascript:void(0)" style="text-decoration: none;"
                                                     class="user-name">
@@ -392,7 +395,7 @@
                                                 <a class="dropdown-item" (click)="onCopyMessage(msg)">Copy</a>
                                                 <a class="dropdown-item" href="javascript:void(0);">Save</a>
                                                 <a class="dropdown-item" href="javascript:void(0);">Forward</a>
-                                                <a class="dropdown-item" href="javascript:void(0);">Delete</a>
+                                                <a class="dropdown-item" (click)="deleteMessage(msg)">Delete</a>
                                             </div>
                                         </div>
                                     </div>

@@ -15,7 +15,8 @@
             </div>
             <div class="form-group mt-3">
                 <label for="email">E-mail</label>
-                <input type="text" formControlName="email" class="form-control bg-dark text-white" id="email" placeholder="Enter E-mail" />
+                <input type="text" formControlName="email" class="form-control bg-dark text-white" id="email"
+                    placeholder="Enter E-mail" />
                 <div *ngIf="hasError('email', 'required')" class="text-danger">
                     *E-mail is required
                 </div>
@@ -33,23 +34,27 @@
             </div>
             <div class="form-group mt-3">
                 <label for="avatar">Profile Picture</label>
-                <input type="file" (change)="onFileSelected($event)" class="form-control bg-dark text-white" id="avatar" />
+                <input type="file" (change)="onFileSelected($event)" formControlName="avatar"
+                    class="form-control bg-dark text-white" id="avatar" />
                 <div *ngIf="avatarPreview" class="mt-2">
                     <img [src]="avatarPreview" class="rounded-circle" width="100" height="100" alt="Avatar Preview" />
                 </div>
+                <div *ngIf="hasError('avatar', 'required')" class="text-danger">
+                    *Profile picture is required
+                </div>
             </div>
             <button type="submit"
-            class="btn btn-primary w-100 py-2 mt-3 d-flex justify-content-center align-items-center"
-            style="background: linear-gradient(45deg, #6366f1, #8b5cf6); border: none;" [disabled]="loading">
+                class="btn btn-primary w-100 py-2 mt-3 d-flex justify-content-center align-items-center"
+                style="background: linear-gradient(45deg, #6366f1, #8b5cf6); border: none;" [disabled]="loading">
 
-            <span *ngIf="!loading">Register</span>
+                <span *ngIf="!loading">Register</span>
 
-            <span *ngIf="loading" class="d-flex align-items-center">
-                <span class="spinner-border spinner-border-sm text-light me-2" role="status"
-                    aria-hidden="true"></span>
+                <span *ngIf="loading" class="d-flex align-items-center">
+                    <span class="spinner-border spinner-border-sm text-light me-2" role="status"
+                        aria-hidden="true"></span>
                     Signing Up...
-            </span>
-        </button>
+                </span>
+            </button>
 
         </form>
         <div class="text-center mt-3">

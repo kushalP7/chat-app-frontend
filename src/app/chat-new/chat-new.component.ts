@@ -6,6 +6,7 @@ import { AuthService } from '../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-chat-new',
@@ -22,8 +23,9 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   loginUserProfile: string = this.authService.getLoggedInUser().avatar;
   groupAvatar: string = '';
   isOnline: boolean = false;
+  lastSeen !: Date;
   activeSection: 'chat' | 'groups' | 'contacts' = 'chat';
-  messageArray: Array<{ user: any, content?: string, fileUrl?: string, type: string, createdAt: string, senderName?: string }> = [];
+  messageArray: Array<{ _id: string, user: any, content?: string, fileUrl?: string, type: string, isDeleted: boolean, createdAt: string, senderName?: string }> = [];
   groupMembers!: any[];
   isGroupChat = false;
   previewUrl: string | null = null;
@@ -39,16 +41,16 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   selectedMembers: any[] = [];
   selectedFile: File | null = null;
   isMobileView = false;
-  isSidebarOpen = false;
+  isSidebarOpen = true;
   groupCallParticipants: any[] = [];
   activeGroupCalls: { [groupId: string]: boolean } = {};
   showDropdown = false;
   private callListenerSub: Subscription | undefined;
   callInProgress = false;
   receiverId!: string;
-  callType: 'audio' | 'video' = 'video';  
+  callType: 'audio' | 'video' = 'video';
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
-  isLoading:boolean = false;
+  isLoading: boolean = false;
 
   constructor(
     public formBuilder: FormBuilder,
@@ -122,6 +124,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     window.addEventListener('resize', this.checkScreenSize.bind(this));
 
     this.socketService.onGroupCallStarted().subscribe((data: any) => {
+      console.log("Group call started:", data);
       if (data.groupId === this.conversationId) {
         this.activeGroupCalls[data.groupId] = data.activeGroupCall;
 
@@ -163,23 +166,29 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   private setupCallNotifications() {
     this.callListenerSub = this.socketService.onIncomingCall().subscribe(async (data: any) => {
       const myUserId = this.authService.getLoggedInUser()._id;
-
-      if (!data.offer) return;
-      if (data.from === myUserId) return;
+  
+      if (!data.offer || data.from === myUserId || data.to !== myUserId) return;
+  
       if (this.callInProgress) {
         console.log("Already in a call. Ignoring incoming call.");
         return;
       }
-      if (data.to !== myUserId) {
-        console.log("This call is not for me.");
-        return;
-      }
+  
       this.userService.getUserById(data.from).subscribe({
-        next: (res) => {
+        next: async (res) => {
           const callerName = res.data.username || 'Unknown User';
-          const accept = confirm(`${callerName} is calling you. Would you like to accept this ${data.callType} call?`);
-
-          if (accept) {
+  
+          const result = await Swal.fire({
+            title: `${callerName} is calling you`,
+            text: `Would you like to accept this ${data.callType} call?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Accept',
+            cancelButtonText: 'Decline',
+            allowOutsideClick: false
+          });
+  
+          if (result.isConfirmed) {
             this.callInProgress = true;
             this.callListenerSub?.unsubscribe();
             this.router.navigate(['/video-call', data.from], {
@@ -195,7 +204,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       });
     });
   }
-
+  
 
   startVideoCall(receiverId: string) {
     this.router.navigate(['/video-call', receiverId], {
@@ -269,12 +278,13 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
   }
 
-  startOrResumeChat(name: string, avatar: any, isOnline: boolean, conversationId: string, receiverId: string) {
+  startOrResumeChat(name: string, avatar: any, isOnline: boolean, conversationId: string, receiverId: string, lastSeen:Date) {
     this.isGroupChat = false;
     this.receiverId = receiverId;
     this.username = name;
     this.userProfile = avatar;
     this.isOnline = isOnline;
+    this.lastSeen = lastSeen;    
 
     if (!conversationId) {
       this.startNewChat(receiverId, name, avatar);
@@ -306,6 +316,12 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
   }
 
+  checkForActiveGroupCall() {
+    if (this.isGroupChat && this.activeGroupCalls[this.conversationId]) {
+      this.cdr.detectChanges();
+    }
+  }
+  
   openGroupConversation(group: any) {
     this.isGroupChat = true;
     this.groupname = group.groupName;
@@ -315,6 +331,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.loadMessages(this.conversationId);
     this.socketService.markMessagesAsRead(this.conversationId);
     this.isSidebarOpen = !this.isSidebarOpen;
+    this.checkForActiveGroupCall();
   }
 
   typing(): void {
@@ -429,7 +446,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     } else {
       this.isLoading = true;
       this.socketService.joinConversation(conversationId);
-      this.userService.getMessages(conversationId).subscribe(response => {
+      this.userService.getMessages(conversationId).subscribe(response => {        
         if (response.success) {
           this.isLoading = false;
           this.messageArray = response.data;
@@ -651,4 +668,68 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
+  deleteMessage(message: any) {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to see this message again!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.userService.deleteMessage(message._id).subscribe({
+          next: () => {
+            this.messageArray = this.messageArray.filter(msg => msg._id !== message._id);
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted!',
+              text: 'Message deleted successfully!',
+              timer: 500,
+              showConfirmButton: false
+            });
+          },
+          error: (error) => {
+            Swal.fire('Error', `${error}`, 'error');
+          }
+        });
+      }
+    });
+  }
+
+  deleteConversation(conversationId: string) {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to see this conversation again!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.userService.deleteConversation(conversationId).subscribe({
+          next: () => {
+            this.chatData = this.chatData.filter(chat => chat._id !== conversationId);
+            this.groupChatData = this.groupChatData.filter(chat => chat._id !== conversationId);
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted!',
+              text: 'Conversation deleted successfully!',
+              timer: 500,
+              showConfirmButton: false
+            });
+          },
+          error: (error) => {
+            Swal.fire('Error', `${error}`, 'error');
+          }
+        });
+      }
+    });
+  }
+  
+  
 }

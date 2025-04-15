@@ -103,7 +103,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
   }
 
   private setupSocketListeners() {
-    this.socketService.onGroupCallParticipantJoined().subscribe(async (data: any) => {
+    this.socketService.onGroupCallParticipantJoined().subscribe(async (data) => {
       const { userId } = data;
       if (userId === this.authService.getLoggedInUser()._id) return;
       await this.createPeerConnection(userId);
@@ -122,7 +122,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.socketService.onGroupCallOffer().subscribe(async (data: any) => {
+    this.socketService.onGroupCallOffer().subscribe(async (data) => {
       const { fromUserId, offer } = data;
 
       const pc = await this.createPeerConnection(fromUserId);
@@ -137,7 +137,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       this.socketService.sendGroupCallAnswer(this.groupId, fromUserId, answer);
     });
 
-    this.socketService.onGroupCallAnswer().subscribe(async (data: any) => {
+    this.socketService.onGroupCallAnswer().subscribe(async (data) => {
       const { fromUserId, answer } = data;
       const pc = this.peerConnections[fromUserId];
       if (pc && pc.signalingState === 'have-local-offer') {
@@ -147,7 +147,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.socketService.onGroupCallIceCandidate().subscribe((data: any) => {
+    this.socketService.onGroupCallIceCandidate().subscribe((data) => {
       const { fromUserId, candidate } = data;
       const pc = this.peerConnections[fromUserId];
       if (pc) {
@@ -155,7 +155,7 @@ export class GroupCallComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.socketService.onGroupCallParticipantLeft().subscribe((data: any) => {
+    this.socketService.onGroupCallParticipantLeft().subscribe((data) => {
       const { userId } = data;
 
       Object.keys(this.peerConnections).forEach(peerId => {

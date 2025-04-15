@@ -30,7 +30,6 @@ export class SocketService {
     this.socket.io.opts.query = { token };
     this.socket.connect();
   }
-
   autoReconnect() {
     const token = this.authService.getToken();
     if (token) {

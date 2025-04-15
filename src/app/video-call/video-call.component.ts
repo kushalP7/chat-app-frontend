@@ -118,7 +118,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
 
   private loadRemoteUserInfo(userId: string) {
     this.userService.getUserById(userId).subscribe({
-      next: (user: any) => {
+      next: (user) => {
         this.remoteUserAvatar = user.data.avatar;
         this.remoteUserName = user.data.username;
       },
@@ -172,7 +172,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
   }
 
   private listenForCalls() {
-    this.socketService.onIncomingCall().subscribe(async (data: any) => {
+    this.socketService.onIncomingCall().subscribe(async (data) => {
       if (!data.offer) return;
       this.callType = data.callType;
       this.callInProgress = true;
@@ -202,7 +202,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.socketService.onCallAccepted().subscribe(async (data: any) => {
+    this.socketService.onCallAccepted().subscribe(async (data) => {
       try {
         if (data.answer && this.peerConnection) {
           await this.peerConnection.setRemoteDescription(data.answer);
