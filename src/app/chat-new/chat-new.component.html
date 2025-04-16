@@ -497,6 +497,9 @@
                         <div class="mb-3">
                             <label for="groupName" class="form-label">Group Name</label>
                             <input type="text" class="form-control" id="groupName" formControlName="groupName" required>
+                            <div *ngIf="hasError('groupName', 'required')" class="text-danger">
+                                *groupName is required
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="groupDescription" class="form-label">Group Description</label>
@@ -516,7 +519,10 @@
                                         <span (click)="removeUser(user)" class="ms-1"
                                             style="cursor:pointer;">&times;</span>
                                     </span>
-                                    <input type="text" class="border-0" readonly style="outline: none; width: 1px;" />
+                                    <input type="text" class="border-0" readonly style="outline: none; width: 1px;" formControlName="groupMembers" />
+                                </div>
+                                <div *ngIf="hasError('groupMembers', 'required')" class="text-danger">
+                                    *groupMembers are required
                                 </div>
 
                                 <div *ngIf="showDropdown" class="border p-2 mt-1"
@@ -526,11 +532,12 @@
                                         {{ user.username }}
                                     </div>
                                 </div>
+                              
                             </div>
 
                         </div>
 
-                        <button type="submit" class="btn btn-primary " [disabled]="isLoading">
+                        <button type="submit" class="btn btn-primary" data-bs-dismiss="modal" [disabled]="isLoading">
                             <span *ngIf="!isLoading">Create Group</span>
 
                             <span *ngIf="isLoading" class="d-flex align-items-center">

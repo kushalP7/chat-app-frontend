@@ -35,6 +35,7 @@ export class LoginComponent implements OnInit {
     onSubmit() {
         this.summited = true;
         if (this.loginForm.invalid) {
+            this.toastr.error('Please complete all required fields in the form before submitting.', '', { timeOut: 2000 });
             return;
         }
         this.loading = true;

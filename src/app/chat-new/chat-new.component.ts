@@ -79,7 +79,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.groupForm = this.fb.group({
       groupName: ['', Validators.required],
       groupDescription: [''],
-      groupMembers: [[]],
+      groupMembers: [[], Validators.required],
       groupAvatar: null,
     });
 
@@ -506,6 +506,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   createGroup() {
     this.isLoading = true;
     if (this.groupForm.invalid || this.selectedMembers.length < 2) {
+      this.isLoading = false;
       this.toastr.error('Please provide a valid group name, description, and select at least 2 members.');
       return;
     }
@@ -536,6 +537,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
         this.showGroupForm = false;
         this.groupForm.reset();
         this.selectedMembers = [];
+        this.selectedFile = null;
       },
       error: (error) => {
         this.isLoading = false;
@@ -755,5 +757,9 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     modalRef.componentInstance.groupId = groupId;
     modalRef.componentInstance.modalRef = modalRef;
   }
+
+  hasError(controlName: string, errorName: string): boolean {
+    return this.groupForm.controls[controlName].touched && this.groupForm.controls[controlName].hasError(errorName);
+}
 
 }

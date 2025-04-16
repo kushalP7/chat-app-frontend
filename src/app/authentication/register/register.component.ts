@@ -48,6 +48,7 @@ export class RegisterComponent implements OnInit {
   onSubmit() {
     this.submitted = true;
     if (this.registerForm.invalid) {
+      this.toastr.error('Please complete all required fields in the form before submitting.', '', { timeOut: 2000 });
       return;
     }
     this.loading = true;

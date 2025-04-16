@@ -8,6 +8,12 @@
                     <input type="text" name="email" formControlName="email"
                         class="form-control bg-dark text-white border-dark" id="email" placeholder="name@example.com"
                         required />
+                    <div *ngIf="hasError('email', 'required')" class="text-danger">
+                        *E-mail is required
+                    </div>
+                    <div *ngIf="hasError('email', 'email')" class="text-danger">
+                        *Invalid email format
+                    </div>
 
                 </div>
                 <div class="mb-4">
@@ -16,6 +22,9 @@
                     <input formControlName="password" type="password"
                         class="form-control bg-dark text-white border-dark" id="password" placeholder="••••••••"
                         name="password" />
+                    <div *ngIf="hasError('password', 'required')" class="text-danger">
+                        *Password is required
+                    </div>
                 </div>
                 <button type="submit"
                     class="btn btn-primary w-100 py-2 mt-3 d-flex justify-content-center align-items-center"
@@ -26,7 +35,7 @@
                     <span *ngIf="loading" class="d-flex align-items-center">
                         <span class="spinner-border spinner-border-sm text-light me-2" role="status"
                             aria-hidden="true"></span>
-                            Signing in...
+                        Signing in...
                     </span>
                 </button>
 
