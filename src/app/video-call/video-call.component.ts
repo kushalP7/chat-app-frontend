@@ -101,7 +101,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       .subscribe(() => {
         this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
         this.cleanUpCall();
-        this.router.navigate(['/chat', { replaceUrl: true }]);
+        this.router.navigate(['/chat'], { replaceUrl: true });
       });
 
   }
@@ -151,7 +151,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
       console.error('Error starting video call:', error);
       this.toastr.error(`Failed to start video call: ${error.message || 'Unknown error'}`, ``, { timeOut: 2000 });
       this.callInProgress = false;
-      this.router.navigate(['/chat', { replaceUrl: true }]);
+      this.router.navigate(['/chat'], { replaceUrl: true });
     }
   }
 
@@ -293,7 +293,7 @@ export class VideoCallComponent implements OnInit, OnDestroy {
         if (this.peerConnection.connectionState === 'disconnected' || this.peerConnection.connectionState === 'failed') {
           this.toastr.info('Call ended by the other participant', '', { timeOut: 2000 });
           this.cleanUpCall();
-          this.router.navigate(['/chat', { replaceUrl: true }]);
+          this.router.navigate(['/chat'], { replaceUrl: true });
         }
       }
     };

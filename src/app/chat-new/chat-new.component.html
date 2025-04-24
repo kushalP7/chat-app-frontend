@@ -9,7 +9,7 @@
                             <img [src]="loginUserProfile" class="rounded-circle avatar-sm">
                         </button>
                         <div class="dropdown-menu dropdown-menu dropdown-menu-md p-2" ngbDropdownMenu>
-                            <a class="dropdown-item">Profile</a>
+                            <a class="dropdown-item" (click)="openUserProfile(this.authService.getLoggedInUser()._id)">Profile</a>
                             <a class="dropdown-item" (click)="onLogoutClick()">Logout</a>
                         </div>
                     </div>
@@ -38,9 +38,8 @@
                                 aria-haspopup="true" aria-expanded="false" ngbDropdownToggle>
                                 <i class="fa-solid fa-ellipsis"></i> </button>
                             <div class="dropdown-menu dropdown-menu-end" ngbDropdownMenu>
-                                <a class="dropdown-item" href="#">Profile</a>
-                                <a class="dropdown-item" href="javascript:void(0);">Edit</a>
-                                <a class="dropdown-item" href="javascript:void(0);">Add Contact</a>
+                                <a class="dropdown-item" (click)="openUserProfile(this.authService.getLoggedInUser()._id)">Profile</a>
+                                <a class="dropdown-item" (click)="editCurrentUserProfile(this.authService.getLoggedInUser()._id)">Edit</a>
                             </div>
                         </div>
                     </div>
@@ -124,12 +123,10 @@
                                     <div class="p-4">
                                         <div>
                                             <div class="d-flex">
-                                                <h5 class="font-size-14">Groups</h5>
+                                                <h5 class="font-size-14" style="padding-top: 3px;">Groups</h5>
                                                 <div class="ms-auto">
-                                                    <button class="btn btn-outline-primary" type="button"
-                                                        data-bs-toggle="modal" data-bs-target="#groupModal">
-                                                        <i class="fa-solid fa-plus"></i> Create New
-                                                    </button>
+                                                    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#groupModal">
+                                                    <i class="fa-solid fa-users"></i> New Group</button>
                                                 </div>
                                             </div>
                                             <ul class="list-unstyled chat-list">
@@ -314,11 +311,6 @@
                                 </button>
                             </li>
 
-                            <li class="list-inline-item" *ngIf="isGroupChat && activeGroupCalls[conversationId]">
-                                <button class="btn nav-btn btn-success" (click)="joinGroupCall(conversationId)">
-                                    <i class="fa-solid fa-phone-volume"></i> Join Call
-                                </button>
-                            </li>
 
                             <li class="list-inline-item">
                                 <div class="dropdown" ngbDropdown>
@@ -329,10 +321,9 @@
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end" ngbDropdownMenu>
                                         <a *ngIf="isGroupChat" class="dropdown-item"
-                                            (click)="openGroupInfo(conversationId)">Profile</a>
+                                            (click)="openGroupInfo(conversationId)">Group Info</a>
                                         <a *ngIf="!isGroupChat" class="dropdown-item"
                                             (click)="openUserProfile(receiverId)">Profile</a>
-                                        <a class="dropdown-item" href="javascript:void(0)">Archive</a>
                                         <a class="dropdown-item" href="javascript:void(0)">Muted</a>
                                         <a class="dropdown-item" (click)="deleteConversation(conversationId)">Delete</a>
                                     </div>
@@ -364,20 +355,35 @@
                                         </div>
                                         <div class="ctext-wrap-content">
                                             <h5 class="conversation-name">
-                                                <a (click)="openUserProfile(msg.user._id)" style="text-decoration: none; cursor: pointer;"
-                                                    class="user-name">
+                                                <a (click)="openUserProfile(msg.user._id)"
+                                                    style="text-decoration: none; cursor: pointer;" class="user-name">
                                                     {{ msg.user._id === authService.getLoggedInUser()._id ? 'You' :
                                                     msg.user.username }}
                                                 </a>
                                                 <span class="time">{{ msg.createdAt | date: 'short' }}</span>
                                             </h5>
-                                            <p class="mb-0" *ngIf="msg.content">{{ msg.content }}</p>
+                                            <p class="mb-0" *ngIf="msg.content && msg.type !=='call'">{{ msg.content }}
+                                            </p>
                                             <div class="message-img mt-3 mb-0" *ngIf="msg.type === 'image'">
                                                 <a class="d-inline-block">
                                                     <img [src]=" msg.fileUrl" alt="" class="rounded"
                                                         (click)="openPreview(msg.fileUrl!, 'image')">
                                                 </a>
                                             </div>
+                                            <div *ngIf="msg.type === 'call'" class="call-message mt-2">
+                                                <ng-container *ngIf="msg.fileUrl; else callEnded">
+                                                    <i class="fa-solid fa-phone text-success me-2"></i>
+                                                    <a [href]="msg.fileUrl" class="text-decoration-none">
+                                                        {{ msg.content || 'Join Call' }}
+                                                    </a>
+                                                </ng-container>
+                                                <ng-template #callEnded>
+                                                    <i class="fa-solid fa-phone text-danger me-2"></i>
+                                                    <span class="text-muted">{{ msg.content || 'Call Ended' }}</span>
+                                                </ng-template>
+                                            </div>
+
+
                                             <video *ngIf="msg.type === 'video'" controls class="chat-media chat-video"
                                                 (click)="openPreview(msg.fileUrl!, 'video')">
                                                 <source [src]="msg.fileUrl" type="video/mp4">
@@ -400,8 +406,8 @@
                                             </a>
                                             <div class="dropdown-menu" ngbDropdownMenu>
                                                 <a class="dropdown-item" (click)="onCopyMessage(msg)">Copy</a>
-                                                <a class="dropdown-item" href="javascript:void(0);">Save</a>
-                                                <a class="dropdown-item" href="javascript:void(0);">Forward</a>
+                                                <a class="dropdown-item" (click)="saveMessage(msg)">Save</a>
+                                                <a class="dropdown-item" (click)="forwardMessage(msg)">Forward</a>
                                                 <a class="dropdown-item" (click)="deleteMessage(msg)">Delete</a>
                                             </div>
                                         </div>
@@ -519,7 +525,8 @@
                                         <span (click)="removeUser(user)" class="ms-1"
                                             style="cursor:pointer;">&times;</span>
                                     </span>
-                                    <input type="text" class="border-0" readonly style="outline: none; width: 1px;" formControlName="groupMembers" />
+                                    <input type="text" class="border-0" readonly style="outline: none; width: 1px;"
+                                        formControlName="groupMembers" />
                                 </div>
                                 <div *ngIf="hasError('groupMembers', 'required')" class="text-danger">
                                     *groupMembers are required
@@ -532,7 +539,7 @@
                                         {{ user.username }}
                                     </div>
                                 </div>
-                              
+
                             </div>
 
                         </div>

@@ -4,7 +4,6 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from 'src/environments/environment';
-import { Observable } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })

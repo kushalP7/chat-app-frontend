@@ -10,7 +10,6 @@ import Swal from 'sweetalert2';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ProfileComponent } from '../profile/profile.component';
 import { GroupInfoComponent } from '../group-info/group-info.component';
-import { IUser } from '../core/interfaces/user';
 
 @Component({
   selector: 'app-chat-new',
@@ -92,6 +91,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
       if (!this.messageArray.some(msg => msg.createdAt === data.createdAt)) {
         this.messageArray.push(data);
+        this.referenceChatAndGroupList(this.conversationId, data, this.chatData);
       }
       this.isTyping = false;
       setTimeout(() => this.scrollToBottom(), 100);
@@ -99,6 +99,8 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
     this.socketService.newGroupMessageReceived().subscribe((data) => {
       if (data.conversationId !== this.conversationId) return;
+      this.referenceChatAndGroupList(this.conversationId, data, this.groupChatData);
+
       if (!this.messageArray.some(msg => msg.createdAt === data.createdAt)) {
         this.userService.getUserById(data.userId).subscribe({
           next: (response) => {
@@ -231,22 +233,39 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     });
   }
 
-  startGroupAudioCall(groupId: string) {
-    this.router.navigate(['/group-call', groupId], {
-      queryParams: { initiator: 'true', callType: 'audio' }
+  startGroupAudioCall(conversationId: string) {
+    this.sendCallNotificationMessage(conversationId, 'audio');
+    this.router.navigate(['/group-call-jitsi', conversationId], {
+      queryParams: { initiatorId: this.authService.getLoggedInUser()._id }
     });
   }
 
-  startGroupVideoCall(groupId: string) {
-    this.router.navigate(['/group-call', groupId], {
-      queryParams: { initiator: 'true', callType: 'video' }
+  startGroupVideoCall(conversationId: string) {
+    this.sendCallNotificationMessage(conversationId, 'video');
+    this.router.navigate(['/group-call-jitsi', conversationId], {
+      queryParams: { initiatorId: this.authService.getLoggedInUser()._id }
     });
   }
 
-  joinGroupCall(groupId: string) {
-    if (this.activeGroupCalls[groupId]) {
-      this.router.navigate(['/group-call', groupId]);
-    }
+  sendCallNotificationMessage(conversationId: string, callType: 'audio' | 'video') {
+    const loggedInUser = this.authService.getLoggedInUser();
+    const messageData: any = {
+      user: {
+        _id: loggedInUser._id,
+        username: loggedInUser.username,
+        email: loggedInUser.email,
+        avatar: loggedInUser.avatar,
+        isOnline: loggedInUser.isOnline,
+        lastSeen: loggedInUser.lastSeen
+      },
+      conversationId,
+      content: callType === 'video' ? 'Video call started.' : 'Audio call started.',
+      fileUrl: `http://localhost:4200//group-call-jitsi/${conversationId}`,
+      type: 'call',
+      createdAt: new Date().toISOString()
+    };
+
+    this.socketService.sendGroupMessage(messageData);
   }
 
   loadUsers() {
@@ -405,6 +424,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       } else {
         this.socketService.sendMessage(messageData);
       }
+
       setTimeout(() => this.scrollToBottom(), 100);
       this.formData.reset();
     }
@@ -556,7 +576,6 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
-
     if (diffMinutes < 1) {
       return 'Just now';
     } else if (diffMinutes < 60) {
@@ -747,7 +766,10 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   }
 
   openUserProfile(userId: string) {
-    const modalRef = this.modalService.open(ProfileComponent);
+    const modalRef = this.modalService.open(ProfileComponent, {
+      windowClass: 'custom-modal'
+    });
+
     modalRef.componentInstance.userId = userId;
     modalRef.componentInstance.modalRef = modalRef;
   }
@@ -760,6 +782,34 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
 
   hasError(controlName: string, errorName: string): boolean {
     return this.groupForm.controls[controlName].touched && this.groupForm.controls[controlName].hasError(errorName);
-}
+  }
+
+  referenceChatAndGroupList(conversationId: string, newMessage: any,chatListData:any[]){
+    const chatIndex = chatListData.findIndex(chat => chat._id === conversationId);
+
+    if (chatIndex !== -1) {
+      const updatedChat = { ...chatListData[chatIndex] };
+      updatedChat.lastMessage = {
+        ...updatedChat.lastMessage,
+        content: newMessage.content,
+        createdAt: newMessage.createdAt
+      };
+
+      chatListData.splice(chatIndex, 1);
+      chatListData.unshift(updatedChat);
+    }
+  }
+
+  saveMessage(message: any) {
+    this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
+  }
+
+  forwardMessage(message: any) {
+    this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
+  }
+
+  editCurrentUserProfile(userId:string) {
+    this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
+  }
 
 }

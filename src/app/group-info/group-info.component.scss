@@ -17,11 +17,11 @@
   }
 
   .members-list {
-    border-radius: 12px;
     .members-container {
-      max-height: 300px; 
+      max-height: 300px;
       overflow-y: auto;
       padding-right: 8px;
+      scroll-behavior: smooth;
 
       &::-webkit-scrollbar {
         width: 6px;
@@ -33,7 +33,7 @@
       }
 
       &::-webkit-scrollbar-thumb {
-        background: #888;
+        background: #aaa;
         border-radius: 3px;
       }
 
@@ -42,17 +42,37 @@
       }
 
       .member-item {
-        padding: 3px;
+        padding: 10px;
         border-radius: 8px;
-        transition: background-color 0.2s;
+        transition: background-color 0.25s ease, transform 0.15s;
+        background-color: #fff;
 
         &:hover {
-          background-color: rgba(0, 0, 0, 0.03);
+          background-color: #f8f9fa;
+          transform: translateY(-2px);
         }
 
         &:not(:last-child) {
           border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
+
+        &.add-member {
+          cursor: pointer;
+          background-color: #e4ebf3;
+          margin-left: 10px;
+
+          &:hover {
+            background-color: #d6eaff;
+          }
+
+          i {
+            font-size: 1.4rem;
+          }
+        }
+      }
+
+      .btn-group{
+        cursor: pointer;
       }
     }
   }
@@ -61,6 +81,7 @@
     width: 48px;
     height: 48px;
     object-fit: cover;
+    border: 1px solid #dee2e6;
   }
 
   .badge {
@@ -97,5 +118,64 @@
     &:hover {
       opacity: 1;
     }
+  }
+}
+
+.add-members-form {
+  background: #f9f9f9;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-in-out;
+
+  h6 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .user-container {
+    max-height: 410px;
+    overflow-y: auto;
+    padding-right: 8px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #bbb;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: #888;
+    }
+  }
+  .form-check-input {
+    margin-left: 0.2rem !important;
+  }
+  .form-check-label {
+    margin-left: 10px !important;
+  }
+  .form-check {
+    margin-bottom: 0.5rem;
+    padding-left: 0 !important ;
+  }
+
+  button {
+    min-width: 100px;
+  }
+
+  .avatar-sm {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border: 1px solid #dee2e6;
   }
 }

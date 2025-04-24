@@ -53,7 +53,7 @@ export class LoginComponent implements OnInit {
             },
             error: (error) => {
                 this.loading = false;
-                this.toastr.error(error.error.message, '', { timeOut: 2000 });
+                this.toastr.error(error, '', { timeOut: 2000 });
             }
         });
     }

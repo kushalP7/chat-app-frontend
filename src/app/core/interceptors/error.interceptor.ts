@@ -45,7 +45,7 @@ export class ErrorInterceptor implements HttpInterceptor {
             }
           }
         }
-        this.toastr.error(errorMessage, '', {timeOut: 2000});            
+        // this.toastr.error(errorMessage,S'', {timeOut: 2000});            
         return throwError(errorMessage);
       })
     );

@@ -22,7 +22,7 @@ import { ServiceWorkerModule } from '@angular/service-worker';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ProfileComponent } from './profile/profile.component';
 import { GroupInfoComponent } from './group-info/group-info.component';
-
+import { JistiComponent } from './jisti/jisti.component';
 
 const socketConfig = {
   url: environment.apiUrl,
@@ -43,6 +43,7 @@ const socketConfig = {
     GroupCallComponent,
     ProfileComponent,
     GroupInfoComponent,
+    JistiComponent,
   ],
   imports: [
     ToastrModule.forRoot(),

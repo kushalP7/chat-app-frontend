@@ -1,10 +1,12 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { catchError, Observable, throwError } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { IUser } from '../interfaces/user';
 import { IConversation } from '../interfaces/conversation';
 import { IApiResponse } from '../interfaces/apiResponse';
+import { Router } from '@angular/router';
+import { ToastrService } from 'ngx-toastr';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +15,12 @@ export class UserService {
   private apiUrl = environment.apiUrl;
   private tokenKey = 'auth_token';
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private toastr: ToastrService
+
+  ) { }
 
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
@@ -21,9 +28,14 @@ export class UserService {
 
   getHeaders(): HttpHeaders {
     const token = this.getToken();
+    if (!token) {
+      this.router.navigate(['/auth/login']);
+      this.toastr.error('You need to be logged in to access this page.', 'Authentication Required', { timeOut: 3000 });
+    }
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`,
+      'skipInterceptorToast': 'true'
     });
   }
 
@@ -59,11 +71,15 @@ export class UserService {
   }
 
   createGroup(formData: FormData): Observable<IApiResponse<IConversation>> {
-    return this.http.post<IApiResponse<IConversation>>(`${this.apiUrl}/conversations/group`, formData, {headers: this.groupCreatHeaders()});
+    return this.http.post<IApiResponse<IConversation>>(`${this.apiUrl}/conversations/group`, formData, { headers: this.groupCreatHeaders() });
   }
 
-  addMembersToGroup(conversationId: string, userId: string): Observable<any> {
-    return this.http.put(`${this.apiUrl}/conversations/group/${conversationId}/add`, { userId }, { headers: this.getHeaders() });
+  addMembersToGroup(conversationId: string, userIds: string[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/conversations/group/${conversationId}/add-member`, { userIds }, { headers: this.getHeaders() });
+  }
+
+  removeMemberFromGroup(conversationId: string, userId: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/conversations/group/${conversationId}/remove-member`, { userId }, { headers: this.getHeaders() });
   }
 
   getUserGropuConversations(): Observable<IApiResponse<IConversation[]>> {
@@ -81,4 +97,16 @@ export class UserService {
   deleteConversation(conversationId: string): Observable<IApiResponse<null>> {
     return this.http.delete<IApiResponse<null>>(`${this.apiUrl}/conversations/${conversationId}`, { headers: this.getHeaders() });
   }
+
+  getJitsiToken(roomName: string): Observable<{ status: boolean, allowed: boolean, jwt: string, roomName: string }> {
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${this.getToken()}` });
+
+    return this.http.get<any>(`${this.apiUrl}/jitsi-room/${roomName}`, { headers }).pipe(
+      catchError(error => {
+        console.error('Failed to get Jitsi token:', error);
+        return throwError(error);
+      })
+    );
+  }
+
 }
