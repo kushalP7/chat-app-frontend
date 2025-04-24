@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, Observable, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { IUser } from '../interfaces/user';
 import { IConversation } from '../interfaces/conversation';
@@ -54,7 +54,7 @@ export class UserService {
     return this.http.get<IApiResponse<IConversation[]>>(`${this.apiUrl}/conversations`, { headers: this.getHeaders() });
   }
 
-  getMessages(conversationId: string): Observable<any> {
+  getMessages(conversationId: string, page?:number, pageSize?:number): Observable<any> {
     return this.http.get(`${this.apiUrl}/messages/${conversationId}`, { headers: this.getHeaders() });
   }
 

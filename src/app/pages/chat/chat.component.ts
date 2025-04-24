@@ -1,23 +1,23 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { UserService } from '../core/services/user.service';
-import { SocketService } from '../core/services/socket.service';
-import { AuthService } from '../core/services/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { ProfileComponent } from '../profile/profile.component';
-import { GroupInfoComponent } from '../group-info/group-info.component';
 import { environment } from 'src/environments/environment';
+import { GroupInfoComponent } from '../group-info/group-info.component';
+import { ProfileComponent } from '../profile/profile.component';
+import { UserService } from 'src/app/core/services/user.service';
+import { SocketService } from 'src/app/core/services/socket.service';
+import { AuthService } from 'src/app/core/services/auth.service';
 
 @Component({
-  selector: 'app-chat-new',
-  templateUrl: './chat-new.component.html',
-  styleUrls: ['./chat-new.component.scss']
+  selector: 'app-chat',
+  templateUrl: './chat.component.html',
+  styleUrls: ['./chat.component.scss']
 })
-export class ChatNewComponent implements OnInit, AfterViewInit {
+export class ChatComponent implements OnInit, AfterViewInit {
   chatData!: any[];
   groupChatData!: any[];
   users: any[] = [];
@@ -61,6 +61,12 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
   selectedFile: File | null = null;
 
   private callListenerSub: Subscription | undefined;
+
+  page = 1;
+  pageSize = 20;
+  hasMoreMessages = true;
+  isFetchingOldMessages = false;
+
 
   @ViewChild('chatWindow', { static: false }) chatWindow!: ElementRef;
 
@@ -179,6 +185,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     if (this.chatWindow)
       this.scrollToBottom();
   }
+  
   private setupCallNotifications() {
     this.callListenerSub = this.socketService.onIncomingCall().subscribe(async (data: any) => {
       const myUserId = this.authService.getLoggedInUser()._id;
@@ -464,7 +471,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     if (this.isGroupChat) {
       this.isLoading = true;
       this.socketService.joinGroup(conversationId);
-      this.userService.getMessages(conversationId).subscribe(response => {
+      this.userService.getMessages(conversationId, this.page, this.pageSize).subscribe(response => {
         if (response.success) {
           this.messageArray = response.data.map((message: any) => {
             this.isLoading = false;
@@ -785,7 +792,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     return this.groupForm.controls[controlName].touched && this.groupForm.controls[controlName].hasError(errorName);
   }
 
-  referenceChatAndGroupList(conversationId: string, newMessage: any,chatListData:any[]){
+  referenceChatAndGroupList(conversationId: string, newMessage: any, chatListData: any[]) {
     const chatIndex = chatListData.findIndex(chat => chat._id === conversationId);
 
     if (chatIndex !== -1) {
@@ -809,7 +816,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
     this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
   }
 
-  editCurrentUserProfile(userId:string) {
+  editCurrentUserProfile(userId: string) {
     this.toastr.info("This feature is currently under development.", '', { timeOut: 2000 });
   }
 

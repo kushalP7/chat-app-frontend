@@ -1,16 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ChatNewComponent } from './chat-new.component';
+import { JistiMeetComponent } from './jisti-meet.component';
 
-describe('ChatNewComponent', () => {
-  let component: ChatNewComponent;
-  let fixture: ComponentFixture<ChatNewComponent>;
+describe('JistiComponent', () => {
+  let component: JistiMeetComponent;
+  let fixture: ComponentFixture<JistiMeetComponent>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [ChatNewComponent]
+      declarations: [JistiMeetComponent]
     });
-    fixture = TestBed.createComponent(ChatNewComponent);
+    fixture = TestBed.createComponent(JistiMeetComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

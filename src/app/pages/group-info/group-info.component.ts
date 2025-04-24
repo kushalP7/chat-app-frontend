@@ -1,9 +1,9 @@
 import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core';
-import { UserService } from '../core/services/user.service';
 import { ToastrService } from 'ngx-toastr';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ProfileComponent } from '../profile/profile.component';
+import { UserService } from 'src/app/core/services/user.service';
 
 
 @Component({

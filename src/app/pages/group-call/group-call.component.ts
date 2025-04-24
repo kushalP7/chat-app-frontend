@@ -1,9 +1,9 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
-import { AuthService } from '../core/services/auth.service';
-import { SocketService } from '../core/services/socket.service';
+import { AuthService } from '../../core/services/auth.service';
+import { SocketService } from '../../core/services/socket.service';
 import { ToastrService } from 'ngx-toastr';
 import { ActivatedRoute, Router } from '@angular/router';
-import { UserService } from '../core/services/user.service';
+import { UserService } from '../../core/services/user.service';
 
 @Component({
   selector: 'app-group-call',

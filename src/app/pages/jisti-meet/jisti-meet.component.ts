@@ -1,16 +1,17 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../core/services/auth.service';
-import { UserService } from '../core/services/user.service';
+
 import { ToastrService } from 'ngx-toastr';
-import { SocketService } from '../core/services/socket.service';
+import { AuthService } from 'src/app/core/services/auth.service';
+import { SocketService } from 'src/app/core/services/socket.service';
+import { UserService } from 'src/app/core/services/user.service';
 
 @Component({
-  selector: 'app-jisti',
-  templateUrl: './jisti.component.html',
-  styleUrls: ['./jisti.component.scss']
+  selector: 'app-jisti-meet',
+  templateUrl: './jisti-meet.component.html',
+  styleUrls: ['./jisti-meet.component.scss']
 })
-export class JistiComponent implements OnInit, OnDestroy {
+export class JistiMeetComponent implements OnInit, OnDestroy {
   private domain = '8x8.vc/vpaas-magic-cookie-a0a921fbd4364c1d8c15b1151dfc4fe2';
   private roomName!: string;
   private api: any;

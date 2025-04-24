@@ -1,8 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
-import { UserService } from '../core/services/user.service';
-import { IUser } from '../core/interfaces/user';
+
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { IUser } from 'src/app/core/interfaces/user';
+import { UserService } from 'src/app/core/services/user.service';
 
 @Component({
   selector: 'app-profile',
