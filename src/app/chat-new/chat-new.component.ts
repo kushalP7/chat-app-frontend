@@ -10,6 +10,7 @@ import Swal from 'sweetalert2';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ProfileComponent } from '../profile/profile.component';
 import { GroupInfoComponent } from '../group-info/group-info.component';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-chat-new',
@@ -260,7 +261,7 @@ export class ChatNewComponent implements OnInit, AfterViewInit {
       },
       conversationId,
       content: callType === 'video' ? 'Video call started.' : 'Audio call started.',
-      fileUrl: `http://localhost:4200//group-call-jitsi/${conversationId}`,
+      fileUrl: `${environment.BASE_URL}/group-call-jitsi/${conversationId}`,
       type: 'call',
       createdAt: new Date().toISOString()
     };

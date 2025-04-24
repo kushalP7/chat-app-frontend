@@ -1,6 +1,6 @@
 export const environment = {
     production: true,
-    // apiUrl: 'http://192.168.4.29:8080',
+    BASE_URL: 'https://kp-chat-app.vercel.app',
     apiUrl: 'https://chat-app-backend-3xyk.onrender.com',
   };
   
