@@ -99,14 +99,7 @@ export class UserService {
   }
 
   getJitsiToken(roomName: string): Observable<{ status: boolean, allowed: boolean, jwt: string, roomName: string }> {
-    const headers = new HttpHeaders({ 'Authorization': `Bearer ${this.getToken()}` });
-
-    return this.http.get<any>(`${this.apiUrl}/jitsi-room/${roomName}`, { headers }).pipe(
-      catchError(error => {
-        console.error('Failed to get Jitsi token:', error);
-        return throwError(error);
-      })
-    );
+    return this.http.get<any>(`${this.apiUrl}/jitsi-room/${roomName}`, { headers:this.getHeaders() });
   }
 
 }
